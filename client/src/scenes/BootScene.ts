@@ -1,0 +1,32 @@
+import Phaser from "phaser";
+import { createPlayerAnimations } from "../entities/spriteFrames";
+import { MAP_TILESETS } from "./mapTilesets";
+
+const CHARACTERS_SHEET_PATH = "/assets/tilesets/kenney_rpg-urban-pack/Tilemap/tilemap_packed.png";
+const PLAYER_LAB_SHEET_PATH = "/assets/sprites/player-walk-lab.png";
+const PLAYER_OUTSIDE_SHEET_PATH = "/assets/sprites/player-walk-outside.png";
+const PLAYER_SIT_LAB_SHEET_PATH = "/assets/sprites/player-sit-lab.png";
+const PLAYER_SIT_OUTSIDE_SHEET_PATH = "/assets/sprites/player-sit-outside.png";
+
+export class BootScene extends Phaser.Scene {
+  constructor() {
+    super("BootScene");
+  }
+
+  preload(): void {
+    for (const t of MAP_TILESETS) this.load.image(t.textureKey, t.path);
+    // NPCs/computers still render from the Kenney sheet's frames specifically, loaded
+    // separately as a spritesheet (the "tiles" load above only registers it as a plain image).
+    this.load.spritesheet("characters", CHARACTERS_SHEET_PATH, { frameWidth: 16, frameHeight: 16 });
+    this.load.spritesheet("player_lab", PLAYER_LAB_SHEET_PATH, { frameWidth: 32, frameHeight: 32 });
+    this.load.spritesheet("player_outside", PLAYER_OUTSIDE_SHEET_PATH, { frameWidth: 32, frameHeight: 32 });
+    this.load.spritesheet("player_sit_lab", PLAYER_SIT_LAB_SHEET_PATH, { frameWidth: 32, frameHeight: 32 });
+    this.load.spritesheet("player_sit_outside", PLAYER_SIT_OUTSIDE_SHEET_PATH, { frameWidth: 32, frameHeight: 32 });
+    this.load.tilemapTiledJSON("lab-map", "/assets/map/lab.json");
+  }
+
+  create(): void {
+    createPlayerAnimations(this);
+    this.scene.start("LoginScene");
+  }
+}
