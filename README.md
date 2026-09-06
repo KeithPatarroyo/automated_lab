@@ -1,11 +1,16 @@
-# Automated Lab (v1)
+# Automated Lab (v2)
 
 A browser-based, top-down 2D multiplayer "virtual lab" - Pokémon-style movement and
 dialogue - loosely inspired by the *Generative Agents* paper (`Paper/2304.03442v2.pdf`)
 and Andrew White's drugcrow.ai concept. Multiple people log in and control avatars in
 real time across four rooms (Workshop, Primary Lab, Kitchen/Corridor, Office), talk to
 fixed-position NPCs for canned dialogue, chat with each other, and use in-world
-"computer" terminals to talk to a real AI agent (Gemini 2.5 Flash) via a server proxy.
+"computer" terminals to talk to a real AI agent via a server proxy.
+
+Since v1, two of the NPCs (`lab_scientist`, `theoretical_scientist`) are no longer
+scripted - they're autonomous LLM agents that run a real closed-loop science task,
+remember what they've done, walk the map with real pathfinding, occasionally talk to
+each other, and persist across server restarts. See "v2: autonomous LLM agents" below.
 
 See `lab_sketch/SKETCH.png` for the real floor-plan this loosely riffs on.
 
@@ -43,6 +48,69 @@ computer terminal.
 
 Without `GEMINI_API_KEY` set, everything else works; the computer terminal will
 reply with a visible in-modal error instead of crashing.
+
+Set `SIMULATION_MODE=replay` (default is `live`) to loop a previously-recorded agent
+session from the database at zero LLM cost instead of running the real decision loop -
+see "Persistence & replay" below.
+
+## v2: autonomous LLM agents & the science task
+
+The two scientist NPCs are driven by `server/src/agents/agentEngine.ts` on a ~2-minute
+decision loop each, backed by Gemini (currently `gemini-3.5-flash-lite` for every call
+path - see the note in `server/src/ai/geminiClient.ts` for why). Their personas and home
+locations live in `server/src/agents/personas.ts`:
+
+- **`lab_scientist`** (experimentalist) - runs the closed-loop crystal grower at the
+  Primary Lab terminal: choose a faulting mechanism, generate a configuration, measure
+  it, log the result.
+- **`theoretical_scientist`** (theorist) - works from the Office desk, analyzing the
+  experimentalist's accumulated data to understand the structure-property relationship.
+
+Both also wander to the Workshop and Kitchen over the course of a simulated day (with
+time-of-day-aware lunch/coffee breaks), navigate via real BFS pathfinding
+(`server/src/agents/pathfinding.ts`) rather than naive straight-line movement, and keep
+a running memory of their own actions (`server/src/agents/memoryStore.ts`) that grounds
+their next decision and their terminal/human chat responses. When the two end up
+adjacent, they exchange a couple of memory-grounded lines of dialogue with each other,
+logged and replayed like any other decision.
+
+**The science task** (`server/src/science/crystalDomain.ts`, `experimentLog.ts`) is a
+fictional but internally-consistent "chaotic layered crystals" domain, loosely modeled
+on real SiC/ZnS polytype stacking-fault physics: a material is a sequence of "H"/"C"
+stacking symbols, and the search space grows as 2^N, so the task has no ceiling. Each
+measurement carries realistic synthetic instrument noise (bulk modulus has a genuine
+quadratic instrument-response curve to ground truth, not just linear+noise).
+
+**The computer terminals are grounded in this real data**
+(`server/src/science/terminalVisualization.ts`): the lab terminal renders a
+theory-vs-experiment parity plot with real measurement uncertainty, the office terminal
+renders a structure diagram plus an information-content/bulk-modulus scatter plot
+across recent runs, and both terminals' chat is grounded in the actual experiment log
+and agent memory instead of a generic prompt.
+
+**9 background worker NPCs** (`workshop_worker_1/2`, `lab_worker_1/2`,
+`office_worker_1/2`, `kitchen_worker_1/2/3`, see `server/src/data/npcDialogue.ts`) add
+canned-dialogue flavor to each room without floating name labels, distinct from the two
+named LLM agents.
+
+**Not yet done:** the theorist's analysis doesn't feed back into the experimentalist's
+next configuration choice - each agent's decision loop runs independently. All 9
+background worker NPCs currently render with the same default sprite frame (no distinct
+per-NPC sprite chosen yet).
+
+## Persistence & replay
+
+`server/src/db/index.ts` opens a SQLite database at `server/data/lab.sqlite` (git-ignored;
+`:memory:` under the test runner) that backs agent memory, the experiment log/target,
+the activity feed, and each agent's position - all of it survives a server restart. The
+human player is deliberately **not** persisted; they're an observer, not part of the
+simulated lab's history.
+
+`SIMULATION_MODE=replay` (`server/src/replay/replayEngine.ts`) bakes the most recent
+recorded session (moves, decisions, and agent-to-agent chat) into a fixed-length loop
+and plays it back with no background decision loop running at all - useful for a public
+demo with zero ongoing LLM spend. Live human chat through the computer terminals still
+calls Gemini normally in either mode.
 
 ## Editing the map
 
@@ -120,7 +188,7 @@ npm run test       # server-side vitest: collision/movement, join, chat broadcas
 npm run typecheck   # all three workspaces
 ```
 
-There's no browser automation (Playwright etc.) in v1 - verify the actual gameplay
+There's no browser automation (Playwright etc.) yet - verify the actual gameplay
 manually with multiple browser tabs. Worth checking each time you touch movement/UI:
 
 - Walking into walls in all four rooms doesn't clip through them, but the door gaps
@@ -134,15 +202,17 @@ manually with multiple browser tabs. Worth checking each time you touch movement
   network tab and confirm there is never a direct request to `generativelanguage.googleapis.com`, only
   same-origin Socket.IO traffic.
 
-## Known v1 limitations (by design, not bugs)
+## Known limitations (by design, not bugs)
 
-- **No database.** Player positions, chat history, and computer-terminal sessions are
-  all in-memory on the server and reset on restart. NPC dialogue and the map are static
-  files in the repo.
+- **Human player state isn't persisted.** Position, chat, and login are in-memory and
+  reset on restart - only the two LLM agents' state lives in SQLite (see "Persistence &
+  replay" above). NPC dialogue and the map are static files in the repo.
 - **Username-only login**, no passwords or accounts. Fine for a trusted-network
   prototype; revisit before exposing this beyond that.
-- **NPCs are static and scripted**, not LLM-backed. That's deliberately deferred to
-  later work (see the Generative Agents paper for where this could go).
+- **Not publicly deployed yet.** Replay mode makes this affordable to host publicly, but
+  no hosting has been set up.
+- **No inter-agent handoff.** The theorist's analysis doesn't yet feed the
+  experimentalist's next configuration choice - see "v2: autonomous LLM agents" above.
 - **Mixed art sources.** The original 4-room shell and NPC sprites are Kenney's CC0
   "RPG Urban Pack"; the player character uses the user's own custom LPC-format
   spritesheets (`lab_sketch/character-spritesheet_male_*.png` -> real per-direction walk
