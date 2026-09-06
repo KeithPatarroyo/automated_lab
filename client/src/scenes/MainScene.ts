@@ -145,13 +145,25 @@ export class MainScene extends Phaser.Scene {
     this.tileWidth = map.tileWidth;
     this.tileHeight = map.tileHeight;
     this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
-    this.cameras.main.setZoom(2);
+    const birdsEye = new URLSearchParams(window.location.search).get("birdseye") === "1";
+    this.cameras.main.setZoom(
+      birdsEye
+        ? Math.min(this.scale.width / map.widthInPixels, this.scale.height / map.heightInPixels)
+        : 2
+    );
 
     const self = this.joinAck.players.find((p) => p.id === this.joinAck.playerId);
     const spawnX = self?.x ?? 100;
     const spawnY = self?.y ?? 100;
     this.localPlayer = new LocalPlayer(this, spawnX, spawnY, this.username);
-    this.cameras.main.startFollow(this.localPlayer.sprite, true, 0.15, 0.15);
+    if (birdsEye) {
+      this.cameras.main.centerOn(map.widthInPixels / 2, map.heightInPixels / 2);
+      this.localPlayer.setLabelVisible(false);
+      this.localPlayer.sprite.setVisible(false);
+      document.body.classList.add("birdseye");
+    } else {
+      this.cameras.main.startFollow(this.localPlayer.sprite, true, 0.15, 0.15);
+    }
 
     for (const p of this.joinAck.players) {
       if (p.id === this.joinAck.playerId) continue;

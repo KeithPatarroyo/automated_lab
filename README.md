@@ -1,5 +1,7 @@
 # Automated Lab (v2)
 
+![Bird's-eye view of the lab](docs/lab-birdseye.png)
+
 A browser-based, top-down 2D multiplayer "virtual lab" - Pokémon-style movement and
 dialogue - loosely inspired by the *Generative Agents* paper (`Paper/2304.03442v2.pdf`)
 and Andrew White's drugcrow.ai concept. Multiple people log in and control avatars in
@@ -167,6 +169,14 @@ If a tileset's source art isn't already on a 16x16 grid, downscale/pack it first
 regenerate an already-in-use packed sheet** without diffing the output first: which
 files get excluded/included changes every item's position in the packed sheet, which
 silently breaks any tiles already placed against the old layout in the live map.
+
+### Bird's-eye screenshot mode
+
+Loading the client with `?birdseye=1` (e.g. `http://localhost:5173/?birdseye=1`) zooms
+the camera out to fit the whole map instead of following the local player, and hides the
+chat/agent-log panels and the local player's own sprite/nametag - useful for regenerating
+`docs/lab-birdseye.png` after a map edit. Log in as usual; the view switches once
+`MainScene` starts.
 
 ## Movement & collision
 

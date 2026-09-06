@@ -29,6 +29,10 @@ export class LocalPlayer {
     this.sprite.setPosition(x, y);
   }
 
+  setLabelVisible(visible: boolean): void {
+    this.label.setVisible(visible);
+  }
+
   update(): void {
     this.label.setPosition(this.sprite.x, this.sprite.y - 30);
   }
