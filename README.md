@@ -249,3 +249,4 @@ Everything below is used under its stated license; keep this list in sync with
 | Automated Lab (analytical/wet-lab instruments, glassware, tools, fittings, monitor/signage icons, GHS hazard diamonds - 70 icons auto-extracted from a reference sheet via `client/scripts/pack-ai-automated-lab.py`) | User-provided (Keith), AI-generated | - |
 | Glassware (flasks, beakers, test tubes, funnels, condensers, stoppers/joints, retort stands/clamps, small hardware - 312 icons auto-extracted from a reference sheet via `client/scripts/pack-ai-glassware.py`) | User-provided (Keith), AI-generated | - |
 | Player character spritesheets | User-provided (Keith) | - |
+| Workshop Tech NPC portrait (static frame auto-extracted from an LPC-format character sheet via `client/scripts/extract-npc-sprite.py`) | User-provided (Keith) | - |

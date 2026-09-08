@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import { DEFAULT_NPC_FRAME, NPC_FRAMES } from "./spriteFrames";
+import { DEFAULT_NPC_FRAME, DEFAULT_NPC_TEXTURE_KEY, NPC_FRAMES, NPC_TEXTURE_KEYS } from "./spriteFrames";
 
 export class Npc {
   readonly sprite: Phaser.GameObjects.Sprite;
@@ -18,8 +18,9 @@ export class Npc {
     this.displayName = displayName;
     this.x = x;
     this.y = y;
-    const frame = NPC_FRAMES[npcId] ?? DEFAULT_NPC_FRAME;
-    this.sprite = scene.add.sprite(x, y, "characters", frame);
+    const textureKey = NPC_TEXTURE_KEYS[npcId] ?? DEFAULT_NPC_TEXTURE_KEY;
+    const frame = textureKey === DEFAULT_NPC_TEXTURE_KEY ? (NPC_FRAMES[npcId] ?? DEFAULT_NPC_FRAME) : 0;
+    this.sprite = scene.add.sprite(x, y, textureKey, frame);
     if (showLabel) {
       scene.add
         .text(x, y - 14, displayName, {

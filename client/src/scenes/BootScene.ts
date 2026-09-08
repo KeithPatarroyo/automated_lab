@@ -7,6 +7,7 @@ const PLAYER_LAB_SHEET_PATH = "/assets/sprites/player-walk-lab.png";
 const PLAYER_OUTSIDE_SHEET_PATH = "/assets/sprites/player-walk-outside.png";
 const PLAYER_SIT_LAB_SHEET_PATH = "/assets/sprites/player-sit-lab.png";
 const PLAYER_SIT_OUTSIDE_SHEET_PATH = "/assets/sprites/player-sit-outside.png";
+const WORKSHOP_WOMAN_SHEET_PATH = "/assets/sprites/workshop-woman.png";
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -22,6 +23,9 @@ export class BootScene extends Phaser.Scene {
     this.load.spritesheet("player_outside", PLAYER_OUTSIDE_SHEET_PATH, { frameWidth: 32, frameHeight: 32 });
     this.load.spritesheet("player_sit_lab", PLAYER_SIT_LAB_SHEET_PATH, { frameWidth: 32, frameHeight: 32 });
     this.load.spritesheet("player_sit_outside", PLAYER_SIT_OUTSIDE_SHEET_PATH, { frameWidth: 32, frameHeight: 32 });
+    // Single static portrait frame (client/scripts/extract-npc-sprite.py), not a multi-frame
+    // sheet - loaded as a plain image so frame 0 is the whole picture.
+    this.load.image("workshop_woman", WORKSHOP_WOMAN_SHEET_PATH);
     this.load.tilemapTiledJSON("lab-map", "/assets/map/lab.json");
   }
 

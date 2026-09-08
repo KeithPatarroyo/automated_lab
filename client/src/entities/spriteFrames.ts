@@ -70,15 +70,22 @@ export function createPlayerAnimations(scene: Phaser.Scene): void {
   }
 }
 
-// NPCs still use the Kenney placeholder tileset - unrelated to the player sprite above.
+// Most NPCs use the Kenney placeholder tileset - unrelated to the player sprite above.
 export const NPC_FRAMES: Record<string, number> = {
-  workshop_tech: 266,
   lab_scientist: 347,
   kitchen_cook: 104,
   office_manager: 430,
 };
 
 export const DEFAULT_NPC_FRAME = 24;
+export const DEFAULT_NPC_TEXTURE_KEY = "characters";
+
+// NPCs whose sprite comes from their own dedicated single-frame texture (loaded in
+// BootScene.ts) instead of a frame index into the shared Kenney "characters" sheet.
+// Frame is always 0 for these - see client/scripts/extract-npc-sprite.py.
+export const NPC_TEXTURE_KEYS: Record<string, string> = {
+  workshop_tech: "workshop_woman",
+};
 
 type DirectionalSprite = Phaser.GameObjects.Sprite | Phaser.Physics.Arcade.Sprite;
 
