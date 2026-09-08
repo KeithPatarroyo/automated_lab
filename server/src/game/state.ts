@@ -1,4 +1,4 @@
-import type { ChatMessage, Direction, PlayerState } from "@lab/shared";
+import type { ChatMessage, Direction, Gender, PlayerState } from "@lab/shared";
 import { CHAT_LOG_LIMIT } from "@lab/shared";
 
 interface ServerPlayer extends PlayerState {
@@ -9,8 +9,8 @@ interface ServerPlayer extends PlayerState {
 export const players = new Map<string, ServerPlayer>();
 export const chatLog: ChatMessage[] = [];
 
-export function addPlayer(id: string, username: string, x: number, y: number): ServerPlayer {
-  const player: ServerPlayer = { id, username, x, y, dir: "down", lastSeq: 0, input: { dx: 0, dy: 0 } };
+export function addPlayer(id: string, username: string, x: number, y: number, gender: Gender): ServerPlayer {
+  const player: ServerPlayer = { id, username, x, y, dir: "down", gender, lastSeq: 0, input: { dx: 0, dy: 0 } };
   players.set(id, player);
   return player;
 }
@@ -39,7 +39,7 @@ function directionFromVector(dx: number, dy: number, fallback: Direction): Direc
 }
 
 export function publicPlayerState(p: ServerPlayer): PlayerState {
-  return { id: p.id, username: p.username, x: p.x, y: p.y, dir: p.dir };
+  return { id: p.id, username: p.username, x: p.x, y: p.y, dir: p.dir, gender: p.gender };
 }
 
 export function allPlayerStates(): PlayerState[] {

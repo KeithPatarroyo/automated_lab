@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 import type { AgentActivity, Direction } from "@lab/shared";
-import { applyDirection, DEFAULT_ZONE, PLAYER_IDLE_FRAME, type OutfitZone } from "./spriteFrames";
+import { applyDirection, DEFAULT_GENDER, DEFAULT_ZONE, PLAYER_IDLE_FRAME, playerTextureKey, type OutfitZone } from "./spriteFrames";
 
 // No dedicated art for the two LLM-agent characters yet, so they reuse the player walk
 // cycle (same animation system as RemotePlayer) with a tint to read as distinct
@@ -30,7 +30,7 @@ export class AgentNpc {
     this.displayName = displayName;
     this.targetX = x;
     this.targetY = y;
-    this.sprite = scene.add.sprite(x, y, `player_${DEFAULT_ZONE}`, PLAYER_IDLE_FRAME.down);
+    this.sprite = scene.add.sprite(x, y, playerTextureKey(DEFAULT_ZONE, DEFAULT_GENDER), PLAYER_IDLE_FRAME.down);
     this.sprite.setOrigin(0.5, 0.85);
     this.sprite.setTint(AGENT_TINTS[npcId] ?? 0xcccccc);
     this.label = scene.add.text(x, y - 30, displayName, {
@@ -47,7 +47,7 @@ export class AgentNpc {
     this.targetX = x;
     this.targetY = y;
     this.activity = activity;
-    applyDirection(this.sprite, dir, moving, zone, false);
+    applyDirection(this.sprite, dir, moving, zone, DEFAULT_GENDER, false);
     this.label.setText(this.displayName + ACTIVITY_SUFFIX[activity]);
   }
 

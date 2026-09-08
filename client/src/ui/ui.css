@@ -34,13 +34,25 @@ body.birdseye .lab-agent-log {
   margin: 0 0 4px;
   font-size: 18px;
 }
-.lab-login input {
+.lab-login input[name="username"] {
   padding: 8px 10px;
   border-radius: 4px;
   border: 1px solid #4a4f66;
   background: #10121a;
   color: #fff;
   font-size: 14px;
+}
+.lab-login-gender {
+  display: flex;
+  gap: 16px;
+  font-size: 13px;
+  color: #cfd3e0;
+}
+.lab-login-gender label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
 }
 .lab-login button {
   padding: 8px 10px;

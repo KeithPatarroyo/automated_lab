@@ -4,6 +4,7 @@ import type {
   AgentNpcState,
   ChatMessage,
   ClientToServerEvents,
+  Gender,
   MapMeta,
   PlayerState,
   ServerToClientEvents,
@@ -31,11 +32,11 @@ class SocketClient {
     return this.socket;
   }
 
-  join(username: string): Promise<JoinAck> {
+  join(username: string, gender: Gender): Promise<JoinAck> {
     const socket = this.connect();
     return new Promise((resolve) => {
       socket.once("join_ack", (payload) => resolve(payload));
-      socket.emit("join", { username });
+      socket.emit("join", { username, gender });
     });
   }
 }

@@ -65,12 +65,36 @@ describe("join", () => {
 
     const ack = await new Promise<any>((resolve) => {
       client.once("join_ack", resolve);
-      client.emit("join", { username: "Alice" });
+      client.emit("join", { username: "Alice", gender: "male" });
     });
 
     expect(ack.playerId).toBeTruthy();
     expect(ack.players.find((p: any) => p.id === ack.playerId)).toBeTruthy();
     expect(ack.mapMeta.npcs.length).toBeGreaterThan(0);
+  });
+
+  it("echoes back the chosen gender", async () => {
+    const client = await connectClient();
+    activeClients.push(client);
+
+    const ack = await new Promise<any>((resolve) => {
+      client.once("join_ack", resolve);
+      client.emit("join", { username: "Alice", gender: "female" });
+    });
+
+    expect(ack.players.find((p: any) => p.id === ack.playerId).gender).toBe("female");
+  });
+
+  it("defaults to male for an invalid gender value", async () => {
+    const client = await connectClient();
+    activeClients.push(client);
+
+    const ack = await new Promise<any>((resolve) => {
+      client.once("join_ack", resolve);
+      client.emit("join", { username: "Alice", gender: "not-a-gender" as any });
+    });
+
+    expect(ack.players.find((p: any) => p.id === ack.playerId).gender).toBe("male");
   });
 });
 
@@ -82,11 +106,11 @@ describe("chat_message", () => {
 
     await new Promise<void>((resolve) => {
       a.once("join_ack", () => resolve());
-      a.emit("join", { username: "Alice" });
+      a.emit("join", { username: "Alice", gender: "male" });
     });
     await new Promise<void>((resolve) => {
       b.once("join_ack", () => resolve());
-      b.emit("join", { username: "Bob" });
+      b.emit("join", { username: "Bob", gender: "female" });
     });
 
     const [receivedByA, receivedByB] = await Promise.all([
@@ -108,7 +132,7 @@ describe("npc_interact", () => {
 
     const ack = await new Promise<any>((resolve) => {
       client.once("join_ack", resolve);
-      client.emit("join", { username: "Alice" });
+      client.emit("join", { username: "Alice", gender: "male" });
     });
 
     const npc = mapMeta.npcs.find((n) => n.npcId === "workshop_tech")!;
@@ -130,7 +154,7 @@ describe("npc_interact", () => {
     activeClients.push(client);
     const ack = await new Promise<any>((resolve) => {
       client.once("join_ack", resolve);
-      client.emit("join", { username: "Alice" });
+      client.emit("join", { username: "Alice", gender: "male" });
     });
     const player = players.get(ack.playerId)!;
     player.x = 0;
@@ -152,7 +176,7 @@ describe("computer terminal", () => {
     activeClients.push(client);
     const ack = await new Promise<any>((resolve) => {
       client.once("join_ack", resolve);
-      client.emit("join", { username: "Alice" });
+      client.emit("join", { username: "Alice", gender: "male" });
     });
 
     const computer = mapMeta.computers[0];

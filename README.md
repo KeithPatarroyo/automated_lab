@@ -219,6 +219,13 @@ manually with multiple browser tabs. Worth checking each time you touch movement
   replay" above). NPC dialogue and the map are static files in the repo.
 - **Username-only login**, no passwords or accounts. Fine for a trusted-network
   prototype; revisit before exposing this beyond that.
+- **"Female" character art is a placeholder.** The login screen's male/female choice is
+  fully wired end-to-end (protocol, server state, broadcast to other players), but no
+  female LPC source sheet has been exported yet - selecting "female" currently renders
+  the same sprite as "male". Drop `character-spritesheet_female_lab.png` /
+  `_female_outside.png` into `lab_sketch/` and re-run
+  `client/scripts/extract-player-sprite.py` to replace the placeholder with real art, no
+  further code changes needed.
 - **Not publicly deployed yet.** Replay mode makes this affordable to host publicly, but
   no hosting has been set up.
 - **No inter-agent handoff.** The theorist's analysis doesn't yet feed the

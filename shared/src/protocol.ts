@@ -1,11 +1,14 @@
 import type { Direction, MapMeta } from "./mapTypes.js";
 
+export type Gender = "male" | "female";
+
 export interface PlayerState {
   id: string;
   username: string;
   x: number;
   y: number;
   dir: Direction;
+  gender: Gender;
 }
 
 export interface ChatMessage {
@@ -133,7 +136,7 @@ export type TerminalVisualization =
 
 // Client -> Server events
 export interface ClientToServerEvents {
-  join: (payload: { username: string }) => void;
+  join: (payload: { username: string; gender: Gender }) => void;
   move: (payload: { seq: number; dx: -1 | 0 | 1; dy: -1 | 0 | 1 }) => void;
   chat_message: (payload: { text: string }) => void;
   npc_interact: (payload: { npcId: string }) => void;

@@ -1,17 +1,19 @@
 import Phaser from "phaser";
-import type { Direction } from "@lab/shared";
-import { applyDirection, DEFAULT_ZONE, PLAYER_IDLE_FRAME, type OutfitZone } from "./spriteFrames";
+import type { Direction, Gender } from "@lab/shared";
+import { applyDirection, DEFAULT_ZONE, PLAYER_IDLE_FRAME, playerTextureKey, type OutfitZone } from "./spriteFrames";
 
 export class RemotePlayer {
   readonly sprite: Phaser.GameObjects.Sprite;
   private readonly label: Phaser.GameObjects.Text;
+  private readonly gender: Gender;
   private targetX: number;
   private targetY: number;
 
-  constructor(scene: Phaser.Scene, x: number, y: number, username: string) {
+  constructor(scene: Phaser.Scene, x: number, y: number, username: string, gender: Gender) {
     this.targetX = x;
     this.targetY = y;
-    this.sprite = scene.add.sprite(x, y, `player_${DEFAULT_ZONE}`, PLAYER_IDLE_FRAME.down);
+    this.gender = gender;
+    this.sprite = scene.add.sprite(x, y, playerTextureKey(DEFAULT_ZONE, gender), PLAYER_IDLE_FRAME.down);
     this.sprite.setOrigin(0.5, 0.85);
     this.label = scene.add.text(x, y - 30, username, {
       fontSize: "11px",
@@ -29,7 +31,7 @@ export class RemotePlayer {
     const moving = x !== this.targetX || y !== this.targetY;
     this.targetX = x;
     this.targetY = y;
-    applyDirection(this.sprite, dir, moving, zone, sitting);
+    applyDirection(this.sprite, dir, moving, zone, this.gender, sitting);
   }
 
   /** The server's last-known position for this player - used for other players'

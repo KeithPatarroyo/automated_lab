@@ -45,10 +45,11 @@ function distance(ax: number, ay: number, bx: number, by: number): number {
 }
 
 export function registerSocketHandlers(io: IoServer, socket: IoSocket): void {
-  socket.on("join", ({ username }) => {
+  socket.on("join", ({ username, gender }) => {
     const clean = username.trim().slice(0, 24) || "Player";
+    const cleanGender = gender === "female" ? "female" : "male";
     const { x, y } = randomSpawn();
-    const player = addPlayer(socket.id, clean, x, y);
+    const player = addPlayer(socket.id, clean, x, y, cleanGender);
 
     socket.emit("join_ack", {
       playerId: socket.id,

@@ -8,8 +8,8 @@ export class LoginScene extends Phaser.Scene {
   }
 
   create(): void {
-    showLoginForm(async (username) => {
-      const joinAck = await socketClient.join(username);
+    showLoginForm(async (username, gender) => {
+      const joinAck = await socketClient.join(username, gender);
       this.scene.start("MainScene", { joinAck, username });
     });
   }

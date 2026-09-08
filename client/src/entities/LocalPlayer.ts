@@ -1,13 +1,15 @@
 import Phaser from "phaser";
-import type { Direction } from "@lab/shared";
-import { applyDirection, DEFAULT_ZONE, PLAYER_IDLE_FRAME, type OutfitZone } from "./spriteFrames";
+import type { Direction, Gender } from "@lab/shared";
+import { applyDirection, DEFAULT_ZONE, PLAYER_IDLE_FRAME, playerTextureKey, type OutfitZone } from "./spriteFrames";
 
 export class LocalPlayer {
   readonly sprite: Phaser.GameObjects.Sprite;
   private readonly label: Phaser.GameObjects.Text;
+  private readonly gender: Gender;
 
-  constructor(scene: Phaser.Scene, x: number, y: number, username: string) {
-    this.sprite = scene.add.sprite(x, y, `player_${DEFAULT_ZONE}`, PLAYER_IDLE_FRAME.down);
+  constructor(scene: Phaser.Scene, x: number, y: number, username: string, gender: Gender) {
+    this.gender = gender;
+    this.sprite = scene.add.sprite(x, y, playerTextureKey(DEFAULT_ZONE, gender), PLAYER_IDLE_FRAME.down);
     // The sprite is 32px (2 floor tiles) tall; anchor near the feet so x/y - the
     // point movement/collision is computed against - lines up with where the
     // character visually stands, not its center.
@@ -22,7 +24,7 @@ export class LocalPlayer {
   }
 
   setDirection(dir: Direction, moving: boolean, zone: OutfitZone, sitting: boolean): void {
-    applyDirection(this.sprite, dir, moving, zone, sitting);
+    applyDirection(this.sprite, dir, moving, zone, this.gender, sitting);
   }
 
   setPosition(x: number, y: number): void {

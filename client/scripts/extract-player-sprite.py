@@ -30,9 +30,18 @@ OUT_CELL = 32  # 2x downscale
 
 # source filename (in lab_sketch/) -> (walk output filename, sit output filename), both
 # written to client/public/assets/sprites/
+#
+# female_lab.txt / female_outside.txt in lab_sketch/ are LPC-generator save-configs, not
+# exported images yet - character-spritesheet_female_lab.png / _female_outside.png don't
+# exist until those configs are loaded into the generator and exported. Until then, the
+# player-walk/sit-*-female.png outputs below are placeholder copies of the male sheets
+# (see BootScene.ts's comment) - re-run this script once the real source PNGs land in
+# lab_sketch/ and it'll overwrite the placeholders with the real art, no code changes needed.
 OUTFITS = {
     "character-spritesheet_male_lab.png": ("player-walk-lab.png", "player-sit-lab.png"),
     "character-spritesheet_male_outside.png": ("player-walk-outside.png", "player-sit-outside.png"),
+    "character-spritesheet_female_lab.png": ("player-walk-lab-female.png", "player-sit-lab-female.png"),
+    "character-spritesheet_female_outside.png": ("player-walk-outside-female.png", "player-sit-outside-female.png"),
 }
 
 
@@ -46,7 +55,11 @@ def extract_block(im: Image.Image, start_row: int, rows: int, cols: int, dest: P
 
 def main() -> None:
     for source_name, (walk_name, sit_name) in OUTFITS.items():
-        im = Image.open(LAB_SKETCH / source_name)
+        source_path = LAB_SKETCH / source_name
+        if not source_path.exists():
+            print(f"Skipping {source_name} - not exported yet")
+            continue
+        im = Image.open(source_path)
         extract_block(im, WALK_START_ROW, WALK_ROWS, WALK_COLS, SPRITES_OUT / walk_name)
         extract_block(im, SIT_START_ROW, SIT_ROWS, SIT_COLS, SPRITES_OUT / sit_name)
 

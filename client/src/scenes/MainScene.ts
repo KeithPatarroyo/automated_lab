@@ -16,7 +16,7 @@ import { LocalPlayer } from "../entities/LocalPlayer";
 import { RemotePlayer } from "../entities/RemotePlayer";
 import { Npc } from "../entities/Npc";
 import { AgentNpc } from "../entities/AgentNpc";
-import { DEFAULT_ZONE, type OutfitZone } from "../entities/spriteFrames";
+import { DEFAULT_GENDER, DEFAULT_ZONE, type OutfitZone } from "../entities/spriteFrames";
 import { MAP_TILESETS } from "./mapTilesets";
 import { ChatPanel } from "../ui/ChatPanel";
 import { AgentLogPanel } from "../ui/AgentLogPanel";
@@ -155,7 +155,7 @@ export class MainScene extends Phaser.Scene {
     const self = this.joinAck.players.find((p) => p.id === this.joinAck.playerId);
     const spawnX = self?.x ?? 100;
     const spawnY = self?.y ?? 100;
-    this.localPlayer = new LocalPlayer(this, spawnX, spawnY, this.username);
+    this.localPlayer = new LocalPlayer(this, spawnX, spawnY, this.username, self?.gender ?? DEFAULT_GENDER);
     if (birdsEye) {
       this.cameras.main.centerOn(map.widthInPixels / 2, map.heightInPixels / 2);
       this.localPlayer.setLabelVisible(false);
@@ -167,7 +167,7 @@ export class MainScene extends Phaser.Scene {
 
     for (const p of this.joinAck.players) {
       if (p.id === this.joinAck.playerId) continue;
-      this.remotePlayers.set(p.id, new RemotePlayer(this, p.x, p.y, p.username));
+      this.remotePlayers.set(p.id, new RemotePlayer(this, p.x, p.y, p.username, p.gender));
     }
 
     for (const npc of this.joinAck.mapMeta.npcs) {
@@ -236,7 +236,7 @@ export class MainScene extends Phaser.Scene {
     socket.on("player_joined", ({ player }: { player: PlayerState }) => {
       if (player.id === this.joinAck.playerId) return;
       if (this.remotePlayers.has(player.id)) return;
-      this.remotePlayers.set(player.id, new RemotePlayer(this, player.x, player.y, player.username));
+      this.remotePlayers.set(player.id, new RemotePlayer(this, player.x, player.y, player.username, player.gender));
     });
 
     socket.on("player_left", ({ playerId }) => {
