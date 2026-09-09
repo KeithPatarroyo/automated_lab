@@ -41,6 +41,11 @@ const NPC_DISPLAY_NAMES: Record<string, string> = {
   kitchen_worker_3: "Operations Administrator",
 };
 
+const COMPUTER_DISPLAY_NAMES: Record<string, string> = {
+  lab_terminal: "Lab Terminal",
+  office_terminal: "Office Terminal",
+};
+
 const AGENT_NPC_ID_SET: ReadonlySet<string> = new Set(AGENT_NPC_IDS);
 const BACKGROUND_NPC_ID_SET: ReadonlySet<string> = new Set(BACKGROUND_NPC_IDS);
 
@@ -193,7 +198,16 @@ export class MainScene extends Phaser.Scene {
     for (const computer of this.joinAck.mapMeta.computers) {
       const x = computer.x * map.tileWidth;
       const y = computer.y * map.tileHeight;
-      this.interactTargets.push({ kind: "computer", id: computer.computerId, label: "Terminal", x, y });
+      const label = COMPUTER_DISPLAY_NAMES[computer.computerId] ?? computer.computerId;
+      this.interactTargets.push({ kind: "computer", id: computer.computerId, label, x, y });
+      this.add
+        .text(x, y - 14, label, {
+          fontSize: "10px",
+          color: "#ffe08a",
+          backgroundColor: "#00000080",
+          padding: { left: 3, right: 3, top: 1, bottom: 1 },
+        })
+        .setOrigin(0.5, 1);
     }
 
     this.cursors = this.input.keyboard!.createCursorKeys();
