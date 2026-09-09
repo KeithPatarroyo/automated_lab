@@ -79,6 +79,13 @@ const WAYPOINT_TILE_OFFSETS: Partial<Record<Waypoint, Record<string, { dx: numbe
     // dx=-1) - kitchen_cook's tile is dx=0, so the target is dx=(-1+3)=2.
     theoretical_scientist: { dx: 2, dy: 0 },
   },
+  lab_bench: {
+    // Both shifted 2 tiles right of where they previously stood (Keith's request):
+    // lab_scientist was on lab_terminal's own tile (dx=0) -> dx=2; theoretical_scientist
+    // was 1 tile left of it via the slotIndex ring search (dx=-1) -> dx=1.
+    lab_scientist: { dx: 2, dy: 0 },
+    theoretical_scientist: { dx: 1, dy: 0 },
+  },
 };
 
 /** Resolves a named waypoint to a pixel position from the live map data (see
