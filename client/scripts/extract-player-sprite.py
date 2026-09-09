@@ -42,6 +42,21 @@ OUTFITS = {
     "character-spritesheet_male_outside.png": ("player-walk-outside.png", "player-sit-outside.png"),
     "character-spritesheet_female_lab.png": ("player-walk-lab-female.png", "player-sit-lab-female.png"),
     "character-spritesheet_female_outside.png": ("player-walk-outside-female.png", "player-sit-outside-female.png"),
+    # The two LLM-agent scientists (server/src/agents/personas.ts) - "office" here is the
+    # user's name for the same default/non-lab OutfitZone the player calls "outside".
+    "character-spritesheet_lab_agent_lab.png": ("agent-lab-scientist-walk-lab.png", "agent-lab-scientist-sit-lab.png"),
+    "character-spritesheet_lab_agent_office.png": (
+        "agent-lab-scientist-walk-outside.png",
+        "agent-lab-scientist-sit-outside.png",
+    ),
+    "character-spritesheet_theory_agent_lab.png": (
+        "agent-theoretical-scientist-walk-lab.png",
+        "agent-theoretical-scientist-sit-lab.png",
+    ),
+    "character-spritesheet_theory_agent_office.png": (
+        "agent-theoretical-scientist-walk-outside.png",
+        "agent-theoretical-scientist-sit-outside.png",
+    ),
 }
 
 
