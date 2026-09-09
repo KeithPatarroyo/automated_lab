@@ -1,14 +1,6 @@
 import Phaser from "phaser";
-import type { AgentActivity, Direction } from "@lab/shared";
-import { applyDirection, DEFAULT_GENDER, DEFAULT_ZONE, PLAYER_IDLE_FRAME, playerTextureKey, type OutfitZone } from "./spriteFrames";
-
-// No dedicated art for the two LLM-agent characters yet, so they reuse the player walk
-// cycle (same animation system as RemotePlayer) with a tint to read as distinct
-// characters rather than another human player. Swap for real sprites once available.
-const AGENT_TINTS: Record<string, number> = {
-  lab_scientist: 0x8fd0ff,
-  theoretical_scientist: 0xffb37a,
-};
+import type { AgentActivity, AgentNpcId, Direction } from "@lab/shared";
+import { agentTextureKey, applyAgentDirection, DEFAULT_ZONE, PLAYER_IDLE_FRAME, type OutfitZone } from "./spriteFrames";
 
 const ACTIVITY_SUFFIX: Record<AgentActivity, string> = {
   idle: "",
@@ -22,17 +14,18 @@ export class AgentNpc {
   readonly sprite: Phaser.GameObjects.Sprite;
   private readonly label: Phaser.GameObjects.Text;
   private readonly displayName: string;
+  private readonly npcId: AgentNpcId;
   private targetX: number;
   private targetY: number;
   private activity: AgentActivity = "idle";
 
   constructor(scene: Phaser.Scene, npcId: string, displayName: string, x: number, y: number) {
     this.displayName = displayName;
+    this.npcId = npcId as AgentNpcId;
     this.targetX = x;
     this.targetY = y;
-    this.sprite = scene.add.sprite(x, y, playerTextureKey(DEFAULT_ZONE, DEFAULT_GENDER), PLAYER_IDLE_FRAME.down);
+    this.sprite = scene.add.sprite(x, y, agentTextureKey(this.npcId, DEFAULT_ZONE), PLAYER_IDLE_FRAME.down);
     this.sprite.setOrigin(0.5, 0.85);
-    this.sprite.setTint(AGENT_TINTS[npcId] ?? 0xcccccc);
     this.label = scene.add.text(x, y - 30, displayName, {
       fontSize: "11px",
       color: "#ffe08a",
@@ -47,7 +40,7 @@ export class AgentNpc {
     this.targetX = x;
     this.targetY = y;
     this.activity = activity;
-    applyDirection(this.sprite, dir, moving, zone, DEFAULT_GENDER, false);
+    applyAgentDirection(this.sprite, dir, moving, zone, this.npcId);
     this.label.setText(this.displayName + ACTIVITY_SUFFIX[activity]);
   }
 

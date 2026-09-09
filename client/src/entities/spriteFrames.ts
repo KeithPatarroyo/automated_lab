@@ -1,4 +1,5 @@
-import type { Direction, Gender } from "@lab/shared";
+import type { AgentNpcId, Direction, Gender } from "@lab/shared";
+import { AGENT_NPC_IDS } from "@lab/shared";
 
 // Each zone-outfit texture (client/public/assets/sprites/player-walk-<zone>[-female].png)
 // is a 9-frame walk cycle per direction, extracted from the user's custom LPC-format
@@ -77,12 +78,60 @@ export function createPlayerAnimations(scene: Phaser.Scene): void {
   }
 }
 
-// Most NPCs use the Kenney placeholder tileset - unrelated to the player sprite above.
-export const NPC_FRAMES: Record<string, number> = {
-  lab_scientist: 347,
-  kitchen_cook: 104,
-  office_manager: 430,
+// The two LLM-agent scientists (server/src/agents/personas.ts) get their own dedicated,
+// zone-switching walk cycle - same layout/mechanics as the player sprite above (see
+// extract-player-sprite.py's agent-* outputs), just keyed by agent identity instead of
+// gender. They don't currently sit, so no sit-texture map is needed here.
+const AGENT_TEXTURE_KEY: Record<AgentNpcId, Record<OutfitZone, string>> = {
+  lab_scientist: { lab: "agent_lab_scientist_lab", outside: "agent_lab_scientist_outside" },
+  theoretical_scientist: { lab: "agent_theoretical_scientist_lab", outside: "agent_theoretical_scientist_outside" },
 };
+
+export function agentTextureKey(npcId: AgentNpcId, zone: OutfitZone): string {
+  return AGENT_TEXTURE_KEY[npcId][zone];
+}
+
+function agentAnimKey(npcId: AgentNpcId, zone: OutfitZone, dir: Direction): string {
+  return `agent-${npcId}-${zone}-walk-${dir}`;
+}
+
+export function createAgentAnimations(scene: Phaser.Scene): void {
+  for (const npcId of AGENT_NPC_IDS) {
+    for (const zone of Object.keys(AGENT_TEXTURE_KEY[npcId]) as OutfitZone[]) {
+      const textureKey = AGENT_TEXTURE_KEY[npcId][zone];
+      for (const dir of Object.keys(DIRECTION_ROW) as Direction[]) {
+        const key = agentAnimKey(npcId, zone, dir);
+        if (scene.anims.exists(key)) continue;
+        scene.anims.create({
+          key,
+          frames: walkFrames(dir).map((frame) => ({ key: textureKey, frame })),
+          frameRate: 10,
+          repeat: -1,
+        });
+      }
+    }
+  }
+}
+
+/** Same walk/idle logic as applyDirection, for an agent's own texture set instead of a
+ * gendered player outfit - agents never sit today. */
+export function applyAgentDirection(
+  sprite: DirectionalSprite,
+  dir: Direction,
+  moving: boolean,
+  zone: OutfitZone,
+  npcId: AgentNpcId,
+): void {
+  if (moving) {
+    sprite.play(agentAnimKey(npcId, zone, dir), true);
+  } else {
+    sprite.anims.stop();
+    sprite.setTexture(AGENT_TEXTURE_KEY[npcId][zone], PLAYER_IDLE_FRAME[dir]);
+  }
+}
+
+// Most NPCs use the Kenney placeholder tileset - unrelated to the player sprite above.
+export const NPC_FRAMES: Record<string, number> = {};
 
 export const DEFAULT_NPC_FRAME = 24;
 export const DEFAULT_NPC_TEXTURE_KEY = "characters";
@@ -92,6 +141,17 @@ export const DEFAULT_NPC_TEXTURE_KEY = "characters";
 // Frame is always 0 for these - see client/scripts/extract-npc-sprite.py.
 export const NPC_TEXTURE_KEYS: Record<string, string> = {
   workshop_tech: "workshop_woman",
+  lab_worker_1: "lab_npc_1",
+  lab_worker_2: "lab_npc_2",
+  workshop_worker_1: "workshop_npc_1",
+  workshop_worker_2: "workshop_npc_2",
+  kitchen_cook: "kitchen_cook_npc",
+  kitchen_worker_1: "kitchen_npc_facilities_coordinator",
+  kitchen_worker_2: "kitchen_npc_lab_safety_officer",
+  kitchen_worker_3: "kitchen_npc_operations_administrator",
+  office_manager: "office_manager_npc",
+  office_worker_1: "office_npc_1",
+  office_worker_2: "office_npc_2",
 };
 
 type DirectionalSprite = Phaser.GameObjects.Sprite | Phaser.Physics.Arcade.Sprite;
