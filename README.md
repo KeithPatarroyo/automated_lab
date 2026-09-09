@@ -1,127 +1,124 @@
-# Automated Lab (v2)
+# Automated Lab
 
 ![Bird's-eye view of the lab](docs/lab-birdseye.png)
 
-A browser-based, top-down 2D multiplayer "virtual lab" - Pokémon-style movement and
-dialogue - loosely inspired by the *Generative Agents* paper (`Paper/2304.03442v2.pdf`)
-and Andrew White's drugcrow.ai concept. Multiple people log in and control avatars in
-real time across four rooms (Workshop, Primary Lab, Kitchen/Corridor, Office), talk to
-fixed-position NPCs for canned dialogue, chat with each other, and use in-world
-"computer" terminals to talk to a real AI agent via a server proxy.
-
-Since v1, two of the NPCs (`lab_scientist`, `theoretical_scientist`) are no longer
-scripted - they're autonomous LLM agents that run a real closed-loop science task,
-remember what they've done, walk the map with real pathfinding, occasionally talk to
-each other, and persist across server restarts. See "v2: autonomous LLM agents" below.
+A browser-based, top-down 2D "virtual lab" - Pokémon-style movement and dialogue -
+loosely inspired by the *Generative Agents* paper (`Paper/2304.03442v2.pdf`) and Andrew
+White's drugcrow.ai concept. Two autonomous LLM-agent scientists (`lab_scientist`,
+`theoretical_scientist`) run a real closed-loop science task around the clock - walking
+between rooms, running experiments, analyzing data, and occasionally chatting with each
+other - while any number of human visitors can log in, walk around, watch, and talk to
+them or to the in-world computer terminals. The screenshot above is the whole map at
+once (`?birdseye=1`, see below): Workshop top-left, Primary Lab top-right, Kitchen
+bottom-left, Office bottom-right, every character - the two agents, the three named
+flavor NPCs, and all 9 background workers - now rendered with its own distinct sprite
+rather than a shared placeholder tile.
 
 See `lab_sketch/SKETCH.png` for the real floor-plan this loosely riffs on.
 
-## Why this lives here and not on the network share
-
-This repo was originally meant to live under the group's `/mnt/scapa/...` network
-drive, but that share is CIFS-mounted with `chmod`/symlinks disabled, which breaks both
-`git` and `npm` workspaces (npm symlinks workspace packages into `node_modules`). So the
-actual working repo lives on local disk. The `Paper/` and `lab_sketch/` reference files
-were copied in from the network share at project start.
-
-## Prerequisites
-
-Node.js wasn't installed system-wide in this environment, so it was installed into a
-dedicated conda environment:
+## Quick start
 
 ```bash
+# Node 20+ needed; if you don't have one:
 conda create -n automated_lab -c conda-forge nodejs=22 -y
 conda activate automated_lab
-```
 
-Any Node 20+ works fine if you already have one available elsewhere.
-
-## Setup
-
-```bash
 npm install
-cp server/.env.example server/.env   # then fill in GEMINI_API_KEY (free at aistudio.google.com) to enable the computer terminal
-npm run dev                          # runs client (Vite, :5173) + server (Socket.IO, :3001) together
+cp server/.env.example server/.env   # fill in GEMINI_API_KEY (free at aistudio.google.com)
+npm run dev                          # client (Vite, :5173) + server (Socket.IO, :3001)
 ```
 
-Open http://localhost:5173 in two or more browser tabs/windows (or one normal + one
-incognito) with different names to see multiplayer movement, chat, NPC dialogue, and the
-computer terminal.
+Open http://localhost:5173. The login screen offers **Visitor** (pick a name and a
+male/female character, then you're in) or **Log In** (a username/password form with no
+real account system behind it yet - it's a placeholder for future auth work). Without
+`GEMINI_API_KEY` set, everything else still works - the computer terminals and talking
+to the two agents will show a visible error instead of crashing.
 
-Without `GEMINI_API_KEY` set, everything else works; the computer terminal will
-reply with a visible in-modal error instead of crashing.
+## Two ways to run it: simulation vs. display-only
 
-Set `SIMULATION_MODE=replay` (default is `live`) to loop a previously-recorded agent
-session from the database at zero LLM cost instead of running the real decision loop -
-see "Persistence & replay" below.
+The two agents' behavior is controlled by `SIMULATION_MODE` in `server/.env`:
 
-## v2: autonomous LLM agents & the science task
+- **`live` (the default)** - the real thing. Each agent runs its own decision loop
+  (~every 2 minutes) backed by Gemini: choosing what to do next, running experiments,
+  analyzing data, walking the map with real pathfinding, occasionally talking to each
+  other. This is genuinely evolving - new experiment data, new memory, new conversation
+  every time - but it costs LLM tokens continuously for as long as the server runs.
+- **`replay`** - a fixed recorded session (baked from the database's most recent `live`
+  run) loops on repeat with **no background decision loop running at all**, so the two
+  agents cost zero LLM tokens no matter how long it plays. Useful for a public demo or
+  just leaving the tab open without burning API credits. A human's own chat with the
+  terminals or the two agents still calls Gemini normally in either mode - replay only
+  affects the two background agents' own behavior, not human interaction.
 
-The two scientist NPCs are driven by `server/src/agents/agentEngine.ts` on a ~2-minute
-decision loop each, backed by Gemini (currently `gemini-3.5-flash-lite` for every call
-path - see the note in `server/src/ai/geminiClient.ts` for why). Their personas and home
-locations live in `server/src/agents/personas.ts`:
+## The world & characters
 
-- **`lab_scientist`** (experimentalist) - runs the closed-loop crystal grower at the
-  Primary Lab terminal: choose a faulting mechanism, generate a configuration, measure
-  it, log the result.
-- **`theoretical_scientist`** (theorist) - works from the Office desk, analyzing the
-  experimentalist's accumulated data to understand the structure-property relationship.
+Four rooms - Workshop, Primary Lab, Kitchen/Corridor, Office - connected by door gaps,
+real-time multiplayer movement, and a shared collision system (see below). Every
+character now has its own sprite, extracted from Keith's own LPC-format character
+sheets (`client/scripts/extract-npc-sprite.py` for static NPCs,
+`extract-player-sprite.py` for the player and the two agents), each posed at a specific
+facing direction (and, for three of them, seated) chosen per-character:
 
-Both also wander to the Workshop and Kitchen over the course of a simulated day (with
-time-of-day-aware lunch/coffee breaks), navigate via real BFS pathfinding
-(`server/src/agents/pathfinding.ts`) rather than naive straight-line movement, and keep
-a running memory of their own actions (`server/src/agents/memoryStore.ts`) that grounds
-their next decision and their terminal/human chat responses. When the two end up
-adjacent, they exchange a couple of memory-grounded lines of dialogue with each other,
-logged and replayed like any other decision.
+- **The two LLM agents** - `lab_scientist` (experimentalist, based at the Primary Lab
+  terminal) and `theoretical_scientist` (theorist, based at the Office desk) - have a
+  full walk cycle each that switches outfit between the Lab and every other room, not
+  just a static portrait.
+- **3 named flavor NPCs** with canned dialogue - `workshop_tech`, `kitchen_cook`,
+  `office_manager`.
+- **9 background worker NPCs** (2 Workshop, 2 Lab, 2 Office, 3 Kitchen - e.g.
+  "Machinist", "Lab Safety Officer") with their own 2-line canned dialogue and no
+  floating name label, meant to populate a room without drawing attention the way a
+  named character does. All three Kitchen workers are seated, each facing a different
+  direction.
+- **The player character** - pick male or female at login; both are full LPC-format
+  walk/sit cycles that switch outfit by room (Lab vs. everywhere else), for both your
+  own view and everyone else's.
 
-**The science task** (`server/src/science/crystalDomain.ts`, `experimentLog.ts`) is a
+The two in-world computer terminals (Lab, Office) each have a floating name label so
+they're identifiable without walking up to them. Loading the client with `?birdseye=1`
+(e.g. `http://localhost:5173/?birdseye=1`) zooms the camera out to fit the whole map,
+hides the chat/agent-log panels and your own sprite/nametag, and additionally marks
+every spawn point with a highlighted tile + label - useful for regenerating
+`docs/lab-birdseye.png` after a map edit; none of that spawn-point marking shows up
+during normal play. Log in as usual; the view switches once the map scene starts.
+
+## The science task
+
+The two agents' work (`server/src/science/crystalDomain.ts`, `experimentLog.ts`) is a
 fictional but internally-consistent "chaotic layered crystals" domain, loosely modeled
 on real SiC/ZnS polytype stacking-fault physics: a material is a sequence of "H"/"C"
 stacking symbols, and the search space grows as 2^N, so the task has no ceiling. Each
 measurement carries realistic synthetic instrument noise (bulk modulus has a genuine
 quadratic instrument-response curve to ground truth, not just linear+noise).
 
-**The computer terminals are grounded in this real data**
-(`server/src/science/terminalVisualization.ts`): the lab terminal renders a
-theory-vs-experiment parity plot with real measurement uncertainty, the office terminal
-renders a structure diagram plus an information-content/bulk-modulus scatter plot
-across recent runs, and both terminals' chat is grounded in the actual experiment log
-and agent memory instead of a generic prompt.
-
-**9 background worker NPCs** (`workshop_worker_1/2`, `lab_worker_1/2`,
-`office_worker_1/2`, `kitchen_worker_1/2/3`, see `server/src/data/npcDialogue.ts`) add
-canned-dialogue flavor to each room without floating name labels, distinct from the two
-named LLM agents.
+The two computer terminals are grounded in this real data
+(`server/src/science/terminalVisualization.ts`): the Lab terminal renders a
+theory-vs-experiment parity plot with real measurement uncertainty, the Office terminal
+renders a structure diagram plus an information-content/bulk-modulus scatter plot across
+recent runs, and both terminals' chat (and chatting with either agent directly) is
+grounded in the actual experiment log and that agent's own memory instead of a generic
+prompt.
 
 **Not yet done:** the theorist's analysis doesn't feed back into the experimentalist's
-next configuration choice - each agent's decision loop runs independently. All 9
-background worker NPCs currently render with the same default sprite frame (no distinct
-per-NPC sprite chosen yet).
+next configuration choice - each agent's decision loop runs independently.
 
-## Persistence & replay
+## Persistence
 
-`server/src/db/index.ts` opens a SQLite database at `server/data/lab.sqlite` (git-ignored;
-`:memory:` under the test runner) that backs agent memory, the experiment log/target,
-the activity feed, and each agent's position - all of it survives a server restart. The
-human player is deliberately **not** persisted; they're an observer, not part of the
-simulated lab's history.
-
-`SIMULATION_MODE=replay` (`server/src/replay/replayEngine.ts`) bakes the most recent
-recorded session (moves, decisions, and agent-to-agent chat) into a fixed-length loop
-and plays it back with no background decision loop running at all - useful for a public
-demo with zero ongoing LLM spend. Live human chat through the computer terminals still
-calls Gemini normally in either mode.
+`server/src/db/index.ts` opens a SQLite database at `server/data/lab.sqlite`
+(git-ignored; `:memory:` under the test runner) that backs agent memory, the experiment
+log/target, the activity feed, and each agent's position - all of it survives a server
+restart, and is what `replay` mode bakes its loop from. The human player is deliberately
+**not** persisted; a visitor is an observer, not part of the simulated lab's history, and
+starts fresh every time they join.
 
 ## Editing the map
 
-`client/public/assets/map/lab.json` is now a **hand-edited Tiled map**, not generated
-code - edit it directly in the [Tiled](https://www.mapeditor.org/) app. The original
-generator, `client/scripts/generate-map.mjs`, produced the very first version (a 40x30
-tile world, four quadrants, door gaps) but **must not be re-run now** - it would
-silently overwrite every manual edit since. Keep it around only as a reference for the
-original layout constants.
+`client/public/assets/map/lab.json` is a **hand-edited Tiled map**, not generated code -
+edit it directly in the [Tiled](https://www.mapeditor.org/) app. The original generator,
+`client/scripts/generate-map.mjs`, produced the very first version (a 40x30 tile world,
+four quadrants, door gaps) but **must not be re-run now** - it would silently overwrite
+every manual edit since. Keep it around only as a reference for the original layout
+constants.
 
 Workflow for picking up a new edit: copy the edited file over
 `client/public/assets/map/lab.json`, then before trusting it, sanity-check that walls
@@ -170,72 +167,50 @@ regenerate an already-in-use packed sheet** without diffing the output first: wh
 files get excluded/included changes every item's position in the packed sheet, which
 silently breaks any tiles already placed against the old layout in the live map.
 
-### Bird's-eye screenshot mode
-
-Loading the client with `?birdseye=1` (e.g. `http://localhost:5173/?birdseye=1`) zooms
-the camera out to fit the whole map instead of following the local player, and hides the
-chat/agent-log panels and the local player's own sprite/nametag - useful for regenerating
-`docs/lab-birdseye.png` after a map edit. Log in as usual; the view switches once
-`MainScene` starts.
-
 ## Movement & collision
 
 Both the server (authoritative) and the client (local prediction) call the *same*
 `resolveMove` function from `shared/src/collision.ts` against their own copy of the
 "walls" tile layer - not just similar logic, the literal same code. It rejects a move
 outright if the destination overlaps a wall tile, rather than moving into it and
-separating back out (which is what Phaser's Arcade-physics colliders do by default, and
-what the player-controlled sprite used before - it produced a visible "creep into the
-wall, then get shoved back" feel). Keep it this way: if client and server ever run
-different collision logic again, they will eventually visually disagree near a wall
-boundary, however subtly.
+separating back out (which is what Phaser's Arcade-physics colliders do by default).
+Keep it this way: if client and server ever run different collision logic again, they
+will eventually visually disagree near a wall boundary, however subtly.
 
 ## Tests
 
 ```bash
-npm run test       # server-side vitest: collision/movement, join, chat broadcast+cap,
-                    # NPC proximity gating, computer-terminal error path
+npm run test       # server-side vitest: collision/movement, join (incl. gender),
+                    # chat broadcast+cap, NPC proximity gating, terminal error path
 npm run typecheck   # all three workspaces
 ```
 
-There's no browser automation (Playwright etc.) yet - verify the actual gameplay
-manually with multiple browser tabs. Worth checking each time you touch movement/UI:
+There's no browser automation in this repo - verify actual gameplay manually with
+multiple browser tabs. Worth checking each time you touch movement/UI:
 
 - Walking into walls in all four rooms doesn't clip through them, but the door gaps
   between rooms do let you through.
-- Two+ tabs see each other move smoothly; closing a tab removes that player for
-  everyone else.
-- Walking up to an NPC (facing it) shows an interact prompt; talking opens a dialogue
-  box and blocks movement until closed; other players are unaffected.
+- Two+ tabs see each other move smoothly, with the correct male/female sprite for each;
+  closing a tab removes that player for everyone else.
+- Walking up to an NPC or either agent (facing it) shows an interact prompt; talking
+  opens a dialogue box and blocks movement until closed; other players are unaffected.
 - Chat messages appear in every connected tab; a newly-joined tab sees recent history.
 - Using a computer terminal round-trips through the server only - check the browser's
-  network tab and confirm there is never a direct request to `generativelanguage.googleapis.com`, only
-  same-origin Socket.IO traffic.
+  network tab and confirm there is never a direct request to
+  `generativelanguage.googleapis.com`, only same-origin Socket.IO traffic.
 
 ## Known limitations (by design, not bugs)
 
 - **Human player state isn't persisted.** Position, chat, and login are in-memory and
-  reset on restart - only the two LLM agents' state lives in SQLite (see "Persistence &
-  replay" above). NPC dialogue and the map are static files in the repo.
-- **Username-only login**, no passwords or accounts. Fine for a trusted-network
-  prototype; revisit before exposing this beyond that.
-- **"Female" character art is a placeholder.** The login screen's male/female choice is
-  fully wired end-to-end (protocol, server state, broadcast to other players), but no
-  female LPC source sheet has been exported yet - selecting "female" currently renders
-  the same sprite as "male". Drop `character-spritesheet_female_lab.png` /
-  `_female_outside.png` into `lab_sketch/` and re-run
-  `client/scripts/extract-player-sprite.py` to replace the placeholder with real art, no
-  further code changes needed.
-- **Not publicly deployed yet.** Replay mode makes this affordable to host publicly, but
-  no hosting has been set up.
+  reset on restart - only the two LLM agents' state lives in SQLite (see Persistence
+  above).
+- **Username-only login**, no passwords or accounts. The "Log In" option on the login
+  screen is a UI placeholder only - picking it shows a form but submitting does nothing.
+  Fine for a trusted-network prototype; revisit before exposing this beyond that.
+- **Not publicly deployed yet.** `replay` mode makes this affordable to host publicly
+  (zero ongoing agent LLM spend), but no hosting has been set up.
 - **No inter-agent handoff.** The theorist's analysis doesn't yet feed the
-  experimentalist's next configuration choice - see "v2: autonomous LLM agents" above.
-- **Mixed art sources.** The original 4-room shell and NPC sprites are Kenney's CC0
-  "RPG Urban Pack"; the player character uses the user's own custom LPC-format
-  spritesheets (`lab_sketch/character-spritesheet_male_*.png` -> real per-direction walk
-  cycles, no flipping tricks). Room decoration is a mix of several LPC-family packs (see
-  Art & asset credits below) plus a sci-fi lab pack - see `client/src/scenes/mapTilesets.ts`
-  for the full registry.
+  experimentalist's next configuration choice - see "The science task" above.
 
 ## Art & asset credits
 
@@ -244,7 +219,7 @@ Everything below is used under its stated license; keep this list in sync with
 
 | Asset | License | Credit |
 |---|---|---|
-| Kenney "RPG Urban Pack" (base tiles, NPC sprites, computer-terminal props) | CC0 | Kenney (kenney.nl) |
+| Kenney "RPG Urban Pack" (base tiles, computer-terminal props) | CC0 | Kenney (kenney.nl) |
 | Cute RPG World - RPG Maker MZ (16x16) (kitchen dressing) | Free (personal/commercial, no resale) | PixyMoon (pixymoon.itch.io) |
 | Land of Pixels "Laboratory tileset PixelArt 16px" (lab floor/props) | CC-BY 4.0 | Land of Pixels |
 | [LPC] The Office (office props) | OGA-BY 3.0 | Eliza Wyatt (DeathsDarling), Lanea Zimmerman (Sharm) |
@@ -255,5 +230,6 @@ Everything below is used under its stated license; keep this list in sync with
 | Modern Machines (CNC mill/lathe/router, 3D printers, laser cutter, workshop tools/materials/signage - 55 icons auto-extracted from a reference sheet via `client/scripts/pack-ai-modern-machines.py`) | User-provided (Keith), AI-generated | - |
 | Automated Lab (analytical/wet-lab instruments, glassware, tools, fittings, monitor/signage icons, GHS hazard diamonds - 70 icons auto-extracted from a reference sheet via `client/scripts/pack-ai-automated-lab.py`) | User-provided (Keith), AI-generated | - |
 | Glassware (flasks, beakers, test tubes, funnels, condensers, stoppers/joints, retort stands/clamps, small hardware - 312 icons auto-extracted from a reference sheet via `client/scripts/pack-ai-glassware.py`) | User-provided (Keith), AI-generated | - |
-| Player character spritesheets | User-provided (Keith) | - |
-| Workshop Tech NPC portrait (static frame auto-extracted from an LPC-format character sheet via `client/scripts/extract-npc-sprite.py`) | User-provided (Keith) | - |
+| Player character spritesheets (male + female, Lab/outside outfits, full walk+sit cycles) | User-provided (Keith) | - |
+| The two LLM agents' character spritesheets (Lab/outside outfits, full walk cycles) | User-provided (Keith) | - |
+| All 12 static NPC portraits (3 named + 9 background workers, one static pose each) | User-provided (Keith) | - |
