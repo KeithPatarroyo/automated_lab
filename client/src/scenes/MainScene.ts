@@ -210,6 +210,27 @@ export class MainScene extends Phaser.Scene {
         .setOrigin(0.5, 1);
     }
 
+    // Spawn points are otherwise invisible (server picks one at random for a new
+    // player's starting position, see server/src/data/mapMeta.ts's randomSpawn) - mark
+    // each one's tile so they're visible in-world, same convention as the NPC/terminal
+    // labels above.
+    for (const spawn of this.joinAck.mapMeta.spawns) {
+      const tileX = Math.floor(spawn.x) * map.tileWidth;
+      const tileY = Math.floor(spawn.y) * map.tileHeight;
+      this.add
+        .rectangle(tileX + map.tileWidth / 2, tileY + map.tileHeight / 2, map.tileWidth, map.tileHeight)
+        .setStrokeStyle(1, 0x4fd8ff, 1)
+        .setFillStyle(0x4fd8ff, 0.15);
+      this.add
+        .text(spawn.x * map.tileWidth, spawn.y * map.tileHeight - 14, "Spawn", {
+          fontSize: "9px",
+          color: "#4fd8ff",
+          backgroundColor: "#00000080",
+          padding: { left: 3, right: 3, top: 1, bottom: 1 },
+        })
+        .setOrigin(0.5, 1);
+    }
+
     this.cursors = this.input.keyboard!.createCursorKeys();
     this.keyW = this.input.keyboard!.addKey("W");
     this.keyA = this.input.keyboard!.addKey("A");
