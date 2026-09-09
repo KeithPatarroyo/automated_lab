@@ -20,7 +20,7 @@ body.birdseye .lab-agent-log {
   background: rgba(10, 10, 14, 0.92);
   z-index: 50;
 }
-.lab-login form {
+.lab-login-card {
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -30,11 +30,16 @@ body.birdseye .lab-agent-log {
   border-radius: 8px;
   min-width: 260px;
 }
-.lab-login h1 {
+.lab-login-card form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.lab-login-card h1 {
   margin: 0 0 4px;
   font-size: 18px;
 }
-.lab-login input[name="username"] {
+.lab-login-input {
   padding: 8px 10px;
   border-radius: 4px;
   border: 1px solid #4a4f66;
@@ -54,7 +59,15 @@ body.birdseye .lab-agent-log {
   gap: 5px;
   cursor: pointer;
 }
-.lab-login button {
+.lab-login-mode-select {
+  display: flex;
+  gap: 10px;
+}
+.lab-login-mode-select button {
+  flex: 1;
+}
+.lab-login-card button[type="submit"],
+.lab-login-mode-select button {
   padding: 8px 10px;
   border-radius: 4px;
   border: none;
@@ -63,8 +76,28 @@ body.birdseye .lab-agent-log {
   font-weight: 600;
   cursor: pointer;
 }
-.lab-login button:hover {
+.lab-login-card button[type="submit"]:hover,
+.lab-login-mode-select button:hover {
   background: #3a68dd;
+}
+.lab-login-back {
+  align-self: flex-start;
+  padding: 6px 10px;
+  border-radius: 4px;
+  border: 1px solid #4a4f66;
+  background: transparent;
+  color: #cfd3e0;
+  font-size: 12px;
+  cursor: pointer;
+}
+.lab-login-back:hover {
+  border-color: #6a7090;
+  color: #fff;
+}
+.lab-login-note {
+  margin: 0;
+  font-size: 12px;
+  color: #9aa0b4;
 }
 
 /* Interaction prompt */
