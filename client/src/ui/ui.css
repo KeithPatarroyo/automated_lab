@@ -94,11 +94,6 @@ body.birdseye .lab-agent-log {
   border-color: #6a7090;
   color: #fff;
 }
-.lab-login-note {
-  margin: 0;
-  font-size: 12px;
-  color: #9aa0b4;
-}
 
 /* Interaction prompt */
 .lab-prompt {

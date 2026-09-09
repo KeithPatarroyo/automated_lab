@@ -83,15 +83,12 @@ export function showLoginForm(onSubmit: (username: string, gender: Gender) => vo
           <input class="lab-login-input" name="account-password" type="password" placeholder="Password" autocomplete="current-password" required />
           <button type="submit">Log In</button>
         </form>
-        <p class="lab-login-note">Account login isn't set up yet - use Visitor for now.</p>
         <button type="button" class="lab-login-back">Back</button>
       </div>
     `;
     const form = container.querySelector("form")!;
-    const note = container.querySelector(".lab-login-note")!;
     form.addEventListener("submit", (e) => {
       e.preventDefault();
-      note.textContent = "Account login isn't set up yet - use Visitor for now.";
     });
 
     container.querySelector(".lab-login-back")!.addEventListener("click", () => {
