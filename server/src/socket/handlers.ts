@@ -4,20 +4,14 @@ import type { ClientToServerEvents, ServerToClientEvents } from "@lab/shared";
 import { INTERACT_RANGE_TILES } from "@lab/shared";
 import { mapMeta, randomSpawn, TILE_WIDTH, TILE_HEIGHT } from "../data/mapMeta.js";
 import { getNpcLines } from "../data/npcDialogue.js";
-import {
-  addPlayer,
-  allPlayerStates,
-  chatLog,
-  players,
-  pushChatMessage,
-  publicPlayerState,
-  removePlayer,
-  setInput,
-} from "../game/state.js";
+import { addPlayer, allPlayerStates, players, publicPlayerState, removePlayer, setInput } from "../game/state.js";
 import { askFast, GeminiClientError, type TerminalTurn } from "../ai/geminiClient.js";
 import { agentLogTail, agentNpcStates, agentStates, memoryStore } from "../agents/runtime.js";
 import { getPersona } from "../agents/personas.js";
 import { buildTerminalSystemPrompt, buildTerminalVisualization } from "../science/terminalVisualization.js";
+import { authenticate, claimSession, isReservedUsername, releaseSession } from "../accounts/humanAccounts.js";
+import { loadHumanSpawn, saveHumanSnapshot } from "../accounts/humanSnapshots.js";
+import { db } from "../db/singleton.js";
 
 type IoServer = Server<ClientToServerEvents, ServerToClientEvents>;
 type IoSocket = Socket<ClientToServerEvents, ServerToClientEvents>;
@@ -47,6 +41,10 @@ function distance(ax: number, ay: number, bx: number, by: number): number {
 export function registerSocketHandlers(io: IoServer, socket: IoSocket): void {
   socket.on("join", ({ username, gender }) => {
     const clean = username.trim().slice(0, 24) || "Player";
+    if (isReservedUsername(clean)) {
+      socket.emit("join_error", { message: `"${clean}" is reserved - log in instead if that's you.` });
+      return;
+    }
     const cleanGender = gender === "female" ? "female" : "male";
     const { x, y } = randomSpawn();
     const player = addPlayer(socket.id, clean, x, y, cleanGender);
@@ -55,7 +53,37 @@ export function registerSocketHandlers(io: IoServer, socket: IoSocket): void {
       playerId: socket.id,
       players: allPlayerStates(),
       mapMeta,
-      chatLogTail: chatLog.slice(-50),
+      // A Visitor only ever sees chat sent after they join (live, via the
+      // chat_message broadcast below) - none of the pre-existing history, which is
+      // only ever kept for the two persisted accounts anyway (see the login handler).
+      chatLogTail: [],
+      agents: agentNpcStates(),
+      agentLogTail: agentLogTail(50),
+    });
+    socket.broadcast.emit("player_joined", { player: publicPlayerState(player) });
+  });
+
+  socket.on("login", ({ username, password }) => {
+    const account = authenticate(username, password);
+    if (!account) {
+      socket.emit("login_error", { message: "Invalid username or password." });
+      return;
+    }
+    if (!claimSession(account.key, socket.id)) {
+      socket.emit("login_error", { message: `${account.displayName} is already logged in elsewhere.` });
+      return;
+    }
+    const snapshot = loadHumanSpawn(account.key);
+    const spawn = snapshot ?? randomSpawn();
+    const player = addPlayer(socket.id, account.displayName, spawn.x, spawn.y, account.gender, account.key, snapshot?.dir);
+
+    socket.emit("join_ack", {
+      playerId: socket.id,
+      players: allPlayerStates(),
+      mapMeta,
+      // A logged-in account gets its whole persisted chat history back, not just a
+      // recent tail - see loadAllPublicChatLog's docstring for why loading it whole is fine.
+      chatLogTail: db.loadAllPublicChatLog(),
       agents: agentNpcStates(),
       agentLogTail: agentLogTail(50),
     });
@@ -74,12 +102,15 @@ export function registerSocketHandlers(io: IoServer, socket: IoSocket): void {
     const msg = {
       id: nanoid(),
       playerId: socket.id,
-      username: player.username,
+      // Only the two persisted accounts show under their bare name - an anonymous
+      // Visitor is labeled so it's clear at a glance who was a guest when Keith/Anna
+      // read this back later.
+      username: player.accountKey ? player.username : `${player.username} (visitor)`,
       text: trimmed,
       ts: Date.now(),
     };
-    pushChatMessage(msg);
     io.emit("chat_message", msg);
+    db.savePublicChatMessage(msg);
   });
 
   socket.on("npc_interact", ({ npcId }) => {
@@ -115,16 +146,39 @@ export function registerSocketHandlers(io: IoServer, socket: IoSocket): void {
     if (!session || session.socketId !== socket.id) return;
     const trimmed = text.trim().slice(0, 2000);
     if (!trimmed) return;
+    const accountKey = players.get(socket.id)?.accountKey;
 
     const perspective = session.computerId === "lab_terminal" ? "experimental" : "theoretical";
     const groundingAgentId = session.computerId === "lab_terminal" ? "lab_scientist" : "theoretical_scientist";
     const visualization = buildTerminalVisualization(perspective);
 
     session.history.push({ role: "user", text: trimmed });
+    if (accountKey) {
+      db.saveHumanInteractionEntry({
+        id: nanoid(),
+        ts: Date.now(),
+        accountKey,
+        kind: "terminal",
+        targetId: session.computerId,
+        role: "user",
+        text: trimmed,
+      });
+    }
     try {
       const systemPrompt = buildTerminalSystemPrompt(session.computerId, memoryStore.recent(groundingAgentId, 6), visualization);
       const reply = await askFast(session.history, systemPrompt);
       session.history.push({ role: "assistant", text: reply });
+      if (accountKey) {
+        db.saveHumanInteractionEntry({
+          id: nanoid(),
+          ts: Date.now(),
+          accountKey,
+          kind: "terminal",
+          targetId: session.computerId,
+          role: "assistant",
+          text: reply,
+        });
+      }
       socket.emit("computer_response", { sessionId, text: reply, visualization });
     } catch (err) {
       const message = err instanceof GeminiClientError ? err.message : "The terminal is unavailable right now.";
@@ -156,8 +210,20 @@ export function registerSocketHandlers(io: IoServer, socket: IoSocket): void {
     if (!trimmed) return;
     const persona = getPersona(session.npcId);
     if (!persona) return;
+    const accountKey = players.get(socket.id)?.accountKey;
 
     session.history.push({ role: "user", text: trimmed });
+    if (accountKey) {
+      db.saveHumanInteractionEntry({
+        id: nanoid(),
+        ts: Date.now(),
+        accountKey,
+        kind: "npc_chat",
+        targetId: session.npcId,
+        role: "user",
+        text: trimmed,
+      });
+    }
     try {
       const recentMemory = memoryStore
         .recent(session.npcId, 6)
@@ -170,6 +236,17 @@ export function registerSocketHandlers(io: IoServer, socket: IoSocket): void {
       const reply = await askFast(session.history, `${persona.systemPrompt}\n\n${grounding}`);
       session.history.push({ role: "assistant", text: reply });
       memoryStore.record(session.npcId, "chat", `A visitor asked: "${trimmed}" - I said: "${reply}"`);
+      if (accountKey) {
+        db.saveHumanInteractionEntry({
+          id: nanoid(),
+          ts: Date.now(),
+          accountKey,
+          kind: "npc_chat",
+          targetId: session.npcId,
+          role: "assistant",
+          text: reply,
+        });
+      }
       socket.emit("npc_chat_response", { sessionId, text: reply });
     } catch (err) {
       const message = err instanceof GeminiClientError ? err.message : "This character is unavailable right now.";
@@ -182,6 +259,24 @@ export function registerSocketHandlers(io: IoServer, socket: IoSocket): void {
   });
 
   socket.on("disconnect", () => {
+    const player = players.get(socket.id);
+    if (player?.accountKey) {
+      saveHumanSnapshot(player.accountKey);
+    } else if (player) {
+      // A Visitor's departure is announced live (same shape as a normal chat message,
+      // so the client needs no changes to render it) and saved into the shared public
+      // record the same way their own chat now is.
+      const departureMsg = {
+        id: nanoid(),
+        playerId: "system",
+        username: "System",
+        text: `${player.username} (visitor) has left.`,
+        ts: Date.now(),
+      };
+      io.emit("chat_message", departureMsg);
+      db.savePublicChatMessage(departureMsg);
+    }
+    releaseSession(socket.id);
     removePlayer(socket.id);
     for (const [sessionId, session] of computerSessions) {
       if (session.socketId === socket.id) computerSessions.delete(sessionId);

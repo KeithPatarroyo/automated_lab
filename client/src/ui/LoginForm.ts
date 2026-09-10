@@ -3,10 +3,16 @@ import { el, uiRoot } from "./root";
 
 type Mode = "select" | "visitor" | "account";
 
-/** Entry screen: choose "Visitor" (today's username+gender flow, calls `onSubmit`) or
- * "Log In" (username/password placeholder - no real account system exists yet, see
- * README's Known limitations; submitting just shows a "not available yet" note). */
-export function showLoginForm(onSubmit: (username: string, gender: Gender) => void): void {
+/** Entry screen: choose "Visitor" (ephemeral username+gender, never persisted) or
+ * "Log In" (Keith/Anna only - the two persisted accounts, see server/src/accounts/
+ * humanAccounts.ts). Both paths can be rejected by the server (a reserved username, or
+ * bad credentials) - on rejection the form shows an inline error and stays open rather
+ * than vanishing, since previously "Visitor" always succeeded and removed itself
+ * immediately, which no longer holds now that a reserved name can be turned away. */
+export function showLoginForm(
+  onVisitorSubmit: (username: string, gender: Gender) => Promise<void>,
+  onAccountLogin: (username: string, password: string) => Promise<void>,
+): void {
   const container = el("div", "lab-ui lab-login");
   uiRoot().appendChild(container);
 
@@ -39,6 +45,26 @@ export function showLoginForm(onSubmit: (username: string, gender: Gender) => vo
     });
   }
 
+  /** Runs `submit`, removing the form on success and showing an inline error (without
+   * losing whatever's already in the other fields) on rejection. Disables the submit
+   * button while pending so a slow response can't be double-submitted. */
+  function handleSubmit(form: HTMLFormElement, submit: () => Promise<void>): void {
+    const button = form.querySelector<HTMLButtonElement>('button[type="submit"]')!;
+    let errorEl = form.querySelector<HTMLElement>(".lab-login-error");
+    if (!errorEl) {
+      errorEl = el("p", "lab-login-error");
+      form.appendChild(errorEl);
+    }
+    errorEl.textContent = "";
+    button.disabled = true;
+    submit()
+      .then(() => container.remove())
+      .catch((err: unknown) => {
+        button.disabled = false;
+        errorEl!.textContent = err instanceof Error ? err.message : "Something went wrong.";
+      });
+  }
+
   function renderVisitor(): void {
     container.innerHTML = `
       <div class="lab-login-card">
@@ -64,8 +90,7 @@ export function showLoginForm(onSubmit: (username: string, gender: Gender) => vo
       if (!username) return;
       const genderInput = container.querySelector<HTMLInputElement>('input[name="gender"]:checked');
       const gender: Gender = genderInput?.value === "female" ? "female" : "male";
-      container.remove();
-      onSubmit(username, gender);
+      handleSubmit(form, () => onVisitorSubmit(username, gender));
     });
 
     container.querySelector(".lab-login-back")!.addEventListener("click", () => {
@@ -87,8 +112,17 @@ export function showLoginForm(onSubmit: (username: string, gender: Gender) => vo
       </div>
     `;
     const form = container.querySelector("form")!;
+    const usernameInput = container.querySelector("input[name=account-username]")! as HTMLInputElement;
+    const passwordInput = container.querySelector("input[name=account-password]")! as HTMLInputElement;
+    usernameInput.focus();
+
     form.addEventListener("submit", (e) => {
       e.preventDefault();
+      const username = usernameInput.value.trim();
+      const password = passwordInput.value;
+      if (!username || !password) return;
+      handleSubmit(form, () => onAccountLogin(username, password));
+      passwordInput.value = "";
     });
 
     container.querySelector(".lab-login-back")!.addEventListener("click", () => {

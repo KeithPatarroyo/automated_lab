@@ -137,6 +137,7 @@ export type TerminalVisualization =
 // Client -> Server events
 export interface ClientToServerEvents {
   join: (payload: { username: string; gender: Gender }) => void;
+  login: (payload: { username: string; password: string }) => void;
   move: (payload: { seq: number; dx: -1 | 0 | 1; dy: -1 | 0 | 1 }) => void;
   chat_message: (payload: { text: string }) => void;
   npc_interact: (payload: { npcId: string }) => void;
@@ -158,6 +159,8 @@ export interface ServerToClientEvents {
     agents: AgentNpcState[];
     agentLogTail: AgentLogEntry[];
   }) => void;
+  login_error: (payload: { message: string }) => void;
+  join_error: (payload: { message: string }) => void;
   state_sync: (payload: { tick: number; players: PlayerState[]; agents: AgentNpcState[] }) => void;
   player_joined: (payload: { player: PlayerState }) => void;
   player_left: (payload: { playerId: string }) => void;
@@ -173,7 +176,6 @@ export interface ServerToClientEvents {
 }
 
 export const TICK_RATE_HZ = 20;
-export const CHAT_LOG_LIMIT = 200;
 export const INTERACT_RANGE_TILES = 1.5;
 export const PLAYER_SPEED_PX_PER_SEC = 110;
 

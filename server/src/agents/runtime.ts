@@ -19,7 +19,7 @@ import {
   type ConversationLine,
 } from "./agentEngine.js";
 import { allRuns, getTarget, hydrateExperimentLog, recentRuns } from "../science/experimentLog.js";
-import { openDb } from "../db/index.js";
+import { db } from "../db/singleton.js";
 import { bakeReplay, ReplayPlayer } from "../replay/replayEngine.js";
 
 type IoServer = Server<ClientToServerEvents, ServerToClientEvents>;
@@ -29,7 +29,6 @@ type IoServer = Server<ClientToServerEvents, ServerToClientEvents>;
 // last known position/streak. A human's own position/chat isn't persisted - they're
 // just an observer for now (see the v2 roadmap), nothing about a session is worth
 // keeping across a restart yet.
-const db = openDb();
 hydrateExperimentLog(db);
 
 // Timestamped feed of agent decisions/movement, shown at the bottom of the web client
@@ -129,12 +128,13 @@ function saveAllAgentSnapshots(): void {
 }
 
 /** Call once during server shutdown (after stopping the timers startAgentRuntime
- * returned) to capture each agent's final position and close the database cleanly.
- * Skips saving a snapshot in replay mode - a replayed position is fabricated, not a
- * real agent state, and must never overwrite the real recorded snapshot it came from. */
+ * returned) to capture each agent's final position. Skips saving a snapshot in replay
+ * mode - a replayed position is fabricated, not a real agent state, and must never
+ * overwrite the real recorded snapshot it came from. Does NOT close the database - `db`
+ * is a shared singleton (see db/singleton.ts) other subsystems may still need to flush
+ * to; server/src/index.ts closes it once, last, after every subsystem's shutdown. */
 export function shutdownAgentRuntime(): void {
   if (SIMULATION_MODE !== "replay") saveAllAgentSnapshots();
-  db.close();
 }
 
 // Safety net: if an agent has been "moving" toward a destination for longer than this,

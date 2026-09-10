@@ -7,6 +7,8 @@ import { CLIENT_ORIGIN, PORT } from "./env.js";
 import { registerSocketHandlers } from "./socket/handlers.js";
 import { startGameLoop } from "./game/loop.js";
 import { shutdownAgentRuntime, startAgentRuntime } from "./agents/runtime.js";
+import { saveAllHumanSnapshots, startHumanSnapshotSaving } from "./accounts/humanSnapshots.js";
+import { db } from "./db/singleton.js";
 
 const app = express();
 app.use(cors({ origin: CLIENT_ORIGIN }));
@@ -26,18 +28,24 @@ io.on("connection", (socket) => registerSocketHandlers(io, socket));
 
 const stopGameLoop = startGameLoop(io);
 const stopAgentRuntime = startAgentRuntime(io);
+const stopHumanSnapshots = startHumanSnapshotSaving();
 
 httpServer.listen(PORT, () => {
   console.log(`[server] listening on http://localhost:${PORT}`);
 });
 
-// Persist the agents' final position/streak and close the database cleanly on a normal
-// shutdown (Ctrl+C, `tsx watch` restart on file change, etc.) rather than only ever
-// relying on the periodic snapshot - a clean exit shouldn't lose anything.
+// Persist final state and close the database cleanly on a normal shutdown (Ctrl+C,
+// `tsx watch` restart on file change, etc.) rather than only ever relying on the
+// periodic snapshots - a clean exit shouldn't lose anything. `db` is a shared singleton
+// (see db/singleton.ts), so it's closed once, here, after every subsystem that might
+// still write to it has had its final say.
 function shutdown(): void {
   stopGameLoop();
   stopAgentRuntime();
+  stopHumanSnapshots();
   shutdownAgentRuntime();
+  saveAllHumanSnapshots();
+  db.close();
   httpServer.close(() => process.exit(0));
   // Force-exit if sockets/connections keep the process alive past a couple seconds.
   setTimeout(() => process.exit(0), 2000).unref();

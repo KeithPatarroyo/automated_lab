@@ -34,9 +34,35 @@ class SocketClient {
 
   join(username: string, gender: Gender): Promise<JoinAck> {
     const socket = this.connect();
-    return new Promise((resolve) => {
-      socket.once("join_ack", (payload) => resolve(payload));
+    return new Promise((resolve, reject) => {
+      const onAck = (payload: JoinAck) => {
+        socket.off("join_error", onError);
+        resolve(payload);
+      };
+      const onError = (payload: { message: string }) => {
+        socket.off("join_ack", onAck);
+        reject(new Error(payload.message));
+      };
+      socket.once("join_ack", onAck);
+      socket.once("join_error", onError);
       socket.emit("join", { username, gender });
+    });
+  }
+
+  login(username: string, password: string): Promise<JoinAck> {
+    const socket = this.connect();
+    return new Promise((resolve, reject) => {
+      const onAck = (payload: JoinAck) => {
+        socket.off("login_error", onError);
+        resolve(payload);
+      };
+      const onError = (payload: { message: string }) => {
+        socket.off("join_ack", onAck);
+        reject(new Error(payload.message));
+      };
+      socket.once("join_ack", onAck);
+      socket.once("login_error", onError);
+      socket.emit("login", { username, password });
     });
   }
 }

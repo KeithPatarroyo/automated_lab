@@ -2,7 +2,7 @@ import { mkdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import Database from "better-sqlite3";
-import type { AgentLogEntry, AgentActivity, Direction } from "@lab/shared";
+import type { AgentLogEntry, AgentActivity, ChatMessage, Direction } from "@lab/shared";
 import type { MemoryEntry } from "../agents/memoryStore.js";
 import type { CrystalConfig, FaultMechanism, Material, StackingSymbol } from "../science/crystalDomain.js";
 import type { ExperimentRun } from "../science/experimentLog.js";
@@ -66,6 +66,34 @@ CREATE TABLE IF NOT EXISTS experiment_target (
   max REAL,
   note TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS human_snapshot (
+  account_key TEXT PRIMARY KEY,
+  x REAL NOT NULL,
+  y REAL NOT NULL,
+  dir TEXT NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public_chat_log (
+  id TEXT PRIMARY KEY,
+  ts INTEGER NOT NULL,
+  player_id TEXT NOT NULL,
+  username TEXT NOT NULL,
+  text TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_public_chat_log_ts ON public_chat_log(ts);
+
+CREATE TABLE IF NOT EXISTS human_interaction_log (
+  id TEXT PRIMARY KEY,
+  ts INTEGER NOT NULL,
+  account_key TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  target_id TEXT NOT NULL,
+  role TEXT NOT NULL,
+  text TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_human_interaction_log_account_ts ON human_interaction_log(account_key, ts);
 `;
 
 export interface AgentSnapshot {
@@ -76,6 +104,23 @@ export interface AgentSnapshot {
   activity: AgentActivity;
   lastActionSignature: string | null;
   actionStreak: number;
+}
+
+export interface HumanSnapshot {
+  accountKey: string;
+  x: number;
+  y: number;
+  dir: Direction;
+}
+
+export interface HumanInteractionEntry {
+  id: string;
+  ts: number;
+  accountKey: string;
+  kind: "npc_chat" | "terminal";
+  targetId: string;
+  role: "user" | "assistant";
+  text: string;
 }
 
 export interface Db {
@@ -99,16 +144,31 @@ export interface Db {
   saveTarget(target: TargetSpec): void;
   loadTarget(): TargetSpec | undefined;
 
+  saveHumanSnapshot(snapshot: HumanSnapshot): void;
+  loadHumanSnapshot(accountKey: string): HumanSnapshot | undefined;
+
+  /** Every public chat message - from a Visitor as well as a logged-in account, plus
+   * the system "<name> (visitor) has left." departure notice - is saved here; only a
+   * Visitor's own position/interaction-log state stays unpersisted. */
+  savePublicChatMessage(msg: ChatMessage): void;
+  /** Every message ever persisted, oldest first - sent in full to a logged-in account
+   * on login, same "small enough to load whole" precedent as loadAllAgentLog. */
+  loadAllPublicChatLog(): ChatMessage[];
+
+  saveHumanInteractionEntry(entry: HumanInteractionEntry): void;
+  loadRecentHumanInteractionLog(accountKey: string, limit: number): HumanInteractionEntry[];
+
   close(): void;
 }
 
 /**
  * Opens (creating if needed) the durable store behind the agent simulation - memory,
- * experiment log, the human-visible activity feed, and each agent's last known
- * position/streak. This is deliberately everything an agent needs to resume roughly
- * where it left off across a server restart; a player's own position/chat is NOT here -
- * the human is just an observer for now (see [[v2-roadmap-todo]]), so there's nothing
- * about a human session worth persisting yet.
+ * experiment log, the human-visible activity feed, each agent's last known
+ * position/streak - plus, for the two named human accounts only (see
+ * server/src/accounts/humanAccounts.ts), their own last known position, their own
+ * public chat messages, and their own NPC-agent/terminal chat history. An anonymous
+ * Visitor is still just an observer: nothing about their session is persisted, and
+ * their public chat is shown live but never written here.
  *
  * Pass ":memory:" for an ephemeral in-process database (used by tests); omit `dbPath`
  * to use the real on-disk file under server/data/ (gitignored - this is generated data,
@@ -156,6 +216,32 @@ export function openDb(dbPath: string = DEFAULT_DB_PATH): Db {
     ON CONFLICT(id) DO UPDATE SET property = excluded.property, min = excluded.min, max = excluded.max, note = excluded.note
   `);
   const selectTarget = raw.prepare("SELECT property, min, max, note FROM experiment_target WHERE id = 1");
+
+  const upsertHumanSnapshot = raw.prepare(`
+    INSERT INTO human_snapshot (account_key, x, y, dir, updated_at)
+    VALUES (@accountKey, @x, @y, @dir, @updatedAt)
+    ON CONFLICT(account_key) DO UPDATE SET
+      x = excluded.x, y = excluded.y, dir = excluded.dir, updated_at = excluded.updated_at
+  `);
+  const selectHumanSnapshot = raw.prepare(
+    "SELECT account_key as accountKey, x, y, dir FROM human_snapshot WHERE account_key = ?",
+  );
+
+  const insertPublicChat = raw.prepare(
+    "INSERT INTO public_chat_log (id, ts, player_id, username, text) VALUES (@id, @ts, @playerId, @username, @text)",
+  );
+  const selectAllPublicChat = raw.prepare(
+    "SELECT id, ts, player_id as playerId, username, text FROM public_chat_log ORDER BY ts ASC",
+  );
+
+  const insertHumanInteraction = raw.prepare(
+    `INSERT INTO human_interaction_log (id, ts, account_key, kind, target_id, role, text)
+     VALUES (@id, @ts, @accountKey, @kind, @targetId, @role, @text)`,
+  );
+  const selectRecentHumanInteraction = raw.prepare(
+    `SELECT id, ts, account_key as accountKey, kind, target_id as targetId, role, text
+     FROM human_interaction_log WHERE account_key = ? ORDER BY ts DESC LIMIT ?`,
+  );
 
   return {
     saveMemoryEntry(entry) {
@@ -232,6 +318,28 @@ export function openDb(dbPath: string = DEFAULT_DB_PATH): Db {
       const row = selectTarget.get() as { property: TargetSpec["property"]; min: number | null; max: number | null; note: string } | undefined;
       if (!row) return undefined;
       return { property: row.property, min: row.min ?? undefined, max: row.max ?? undefined, note: row.note };
+    },
+
+    saveHumanSnapshot(snapshot) {
+      upsertHumanSnapshot.run({ ...snapshot, updatedAt: Date.now() });
+    },
+    loadHumanSnapshot(accountKey) {
+      return selectHumanSnapshot.get(accountKey) as HumanSnapshot | undefined;
+    },
+
+    savePublicChatMessage(msg) {
+      insertPublicChat.run({ id: msg.id, ts: msg.ts, playerId: msg.playerId, username: msg.username, text: msg.text });
+    },
+    loadAllPublicChatLog() {
+      return selectAllPublicChat.all() as ChatMessage[];
+    },
+
+    saveHumanInteractionEntry(entry) {
+      insertHumanInteraction.run(entry);
+    },
+    loadRecentHumanInteractionLog(accountKey, limit) {
+      const rows = selectRecentHumanInteraction.all(accountKey, limit) as HumanInteractionEntry[];
+      return rows.reverse();
     },
 
     close() {

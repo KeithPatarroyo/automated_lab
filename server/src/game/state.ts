@@ -1,16 +1,26 @@
-import type { ChatMessage, Direction, Gender, PlayerState } from "@lab/shared";
-import { CHAT_LOG_LIMIT } from "@lab/shared";
+import type { Direction, Gender, PlayerState } from "@lab/shared";
 
 interface ServerPlayer extends PlayerState {
   lastSeq: number;
   input: { dx: -1 | 0 | 1; dy: -1 | 0 | 1 };
+  /** Set only for the two persisted human accounts (see accounts/humanAccounts.ts) -
+   * undefined for an anonymous, ephemeral Visitor. Server-internal only, not part of
+   * the public PlayerState wire shape. */
+  accountKey?: string;
 }
 
 export const players = new Map<string, ServerPlayer>();
-export const chatLog: ChatMessage[] = [];
 
-export function addPlayer(id: string, username: string, x: number, y: number, gender: Gender): ServerPlayer {
-  const player: ServerPlayer = { id, username, x, y, dir: "down", gender, lastSeq: 0, input: { dx: 0, dy: 0 } };
+export function addPlayer(
+  id: string,
+  username: string,
+  x: number,
+  y: number,
+  gender: Gender,
+  accountKey?: string,
+  dir: Direction = "down",
+): ServerPlayer {
+  const player: ServerPlayer = { id, username, x, y, dir, gender, accountKey, lastSeq: 0, input: { dx: 0, dy: 0 } };
   players.set(id, player);
   return player;
 }
@@ -44,11 +54,6 @@ export function publicPlayerState(p: ServerPlayer): PlayerState {
 
 export function allPlayerStates(): PlayerState[] {
   return Array.from(players.values()).map(publicPlayerState);
-}
-
-export function pushChatMessage(msg: ChatMessage): void {
-  chatLog.push(msg);
-  if (chatLog.length > CHAT_LOG_LIMIT) chatLog.shift();
 }
 
 export type { ServerPlayer };

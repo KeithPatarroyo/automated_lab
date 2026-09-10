@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { openDb } from "./index.js";
+import { openDb, type HumanInteractionEntry } from "./index.js";
 import type { MemoryEntry } from "../agents/memoryStore.js";
 import type { ExperimentRun } from "../science/experimentLog.js";
-import type { AgentLogEntry } from "@lab/shared";
+import type { AgentLogEntry, ChatMessage } from "@lab/shared";
 
 function freshDb() {
   return openDb(":memory:");
@@ -144,6 +144,58 @@ describe("target spec persistence", () => {
 
     db.saveTarget({ property: "bulkModulus", max: 80, note: "looking for soft materials" });
     expect(db.loadTarget()).toEqual({ property: "bulkModulus", min: undefined, max: 80, note: "looking for soft materials" });
+    db.close();
+  });
+});
+
+describe("human snapshot persistence", () => {
+  it("returns undefined for an account with no saved snapshot", () => {
+    const db = freshDb();
+    expect(db.loadHumanSnapshot("keith")).toBeUndefined();
+    db.close();
+  });
+
+  it("round-trips and upserts a snapshot for the same account", () => {
+    const db = freshDb();
+    db.saveHumanSnapshot({ accountKey: "keith", x: 100, y: 200, dir: "down" });
+    expect(db.loadHumanSnapshot("keith")).toMatchObject({ x: 100, y: 200, dir: "down" });
+
+    db.saveHumanSnapshot({ accountKey: "keith", x: 150, y: 250, dir: "left" });
+    expect(db.loadHumanSnapshot("keith")).toMatchObject({ x: 150, y: 250, dir: "left" });
+    db.close();
+  });
+});
+
+describe("public chat log persistence", () => {
+  it("round-trips every message ever saved, oldest first", () => {
+    const db = freshDb();
+    const messages: ChatMessage[] = [
+      { id: "1", playerId: "p1", username: "Keith", text: "hello", ts: 10 },
+      { id: "2", playerId: "p2", username: "Anna", text: "hi there", ts: 20 },
+      { id: "3", playerId: "p1", username: "Keith", text: "how's it going", ts: 30 },
+    ];
+    // Insert out of chronological order to prove the query sorts by ts, not insert order.
+    db.savePublicChatMessage(messages[2]);
+    db.savePublicChatMessage(messages[0]);
+    db.savePublicChatMessage(messages[1]);
+    expect(db.loadAllPublicChatLog()).toEqual(messages);
+    db.close();
+  });
+});
+
+describe("human interaction log persistence", () => {
+  it("round-trips entries most-recent-N, chronological order, filtered by account", () => {
+    const db = freshDb();
+    const entries: HumanInteractionEntry[] = [
+      { id: "1", ts: 10, accountKey: "keith", kind: "terminal", targetId: "lab_terminal", role: "user", text: "hi" },
+      { id: "2", ts: 20, accountKey: "keith", kind: "terminal", targetId: "lab_terminal", role: "assistant", text: "hello" },
+      { id: "3", ts: 15, accountKey: "anna", kind: "npc_chat", targetId: "lab_scientist", role: "user", text: "hey" },
+    ];
+    for (const e of entries) db.saveHumanInteractionEntry(e);
+
+    expect(db.loadRecentHumanInteractionLog("keith", 10).map((e) => e.text)).toEqual(["hi", "hello"]);
+    expect(db.loadRecentHumanInteractionLog("anna", 10).map((e) => e.text)).toEqual(["hey"]);
+    expect(db.loadRecentHumanInteractionLog("keith", 1).map((e) => e.text)).toEqual(["hello"]);
     db.close();
   });
 });

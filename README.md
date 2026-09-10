@@ -108,9 +108,23 @@ next configuration choice - each agent's decision loop runs independently.
 `server/src/db/index.ts` opens a SQLite database at `server/data/lab.sqlite`
 (git-ignored; `:memory:` under the test runner) that backs agent memory, the experiment
 log/target, the activity feed, and each agent's position - all of it survives a server
-restart, and is what `replay` mode bakes its loop from. The human player is deliberately
-**not** persisted; a visitor is an observer, not part of the simulated lab's history, and
-starts fresh every time they join.
+restart, and is what `replay` mode bakes its loop from.
+
+Two named human accounts, **Keith** and **Anna** (see
+`server/src/accounts/humanAccounts.ts`), are also persisted: their own last known
+position (so they resume roughly where they left off instead of a fresh spawn) and
+their own NPC-agent/terminal chat history (`human_snapshot`, `human_interaction_log`
+tables). Logging in as either requires the matching `KEITH_PASSWORD`/`ANNA_PASSWORD` env
+var (see `server/.env.example`) - a plain equality check, not hashed, which is fine for
+a 2-person demo but not a real auth system. Anyone else is an anonymous **Visitor**:
+their own position/interaction history stays unpersisted exactly as before, and they can
+no longer pick the name "Keith" or "Anna".
+
+The **public chat log** (`public_chat_log` table) is different: it records everything
+said by anyone - Keith, Anna, or a Visitor (labeled `"<name> (visitor)"`), plus a
+`"<name> (visitor) has left."` system notice on a Visitor's disconnect - and survives a
+restart. A newly-joined Visitor only sees chat sent after they arrive (nothing
+retroactive); logging in as Keith or Anna instead loads the whole persisted history.
 
 ## Deployment
 
@@ -122,9 +136,10 @@ serverless host), while the client is a static Vite build.
 - **Server (Fly.io):** `Dockerfile` runs `@lab/server` straight from TypeScript via
   `tsx` (no build step - `shared` has no build script and is meant to be consumed as
   source by both `tsx` and Vite). `fly.toml` mounts a 1GB volume at `server/data` for
-  `lab.sqlite`, so agent memory/experiment history survive redeploys. Config lives in
-  Fly secrets (`GEMINI_API_KEY`, `CLIENT_ORIGIN`), not in git. Redeploy with
-  `flyctl deploy --app automated-lab` from the repo root.
+  `lab.sqlite`, so agent memory/experiment history - and now Keith/Anna's own state,
+  see Persistence below - survive redeploys. Config lives in Fly secrets
+  (`GEMINI_API_KEY`, `CLIENT_ORIGIN`, `KEITH_PASSWORD`, `ANNA_PASSWORD`), not in git.
+  Redeploy with `flyctl deploy --app automated-lab` from the repo root.
 - **Client (Vercel):** project root directory is set to `client/` (via
   `vercel project update automated-lab-client --root-directory client`, not
   `vercel.json` - a bare `rootDirectory` key there fails schema validation), so `npm
@@ -225,14 +240,13 @@ multiple browser tabs. Worth checking each time you touch movement/UI:
 
 ## Known limitations (by design, not bugs)
 
-- **Human player state isn't persisted.** Position, chat, and login are in-memory and
-  reset on restart - only the two LLM agents' state lives in SQLite (see Persistence
-  above).
-- **Username-only login**, no passwords or accounts. The "Log In" option on the login
-  screen is a UI placeholder only - picking it shows a form but submitting does nothing.
-  Fine for a trusted-network prototype; revisit before exposing this beyond that.
-- **Not publicly deployed yet.** `replay` mode makes this affordable to host publicly
-  (zero ongoing agent LLM spend), but no hosting has been set up.
+- **Only Keith and Anna have persisted position/interaction state** (see Persistence
+  above). A Visitor's own session is still fully ephemeral; only the shared public chat
+  log records everyone.
+- **Passwords are a plain equality check** against an env var, not hashed. Fine for a
+  2-person demo; revisit before this means anything more than that.
+- **Single session per account.** Logging in as Keith while already connected
+  elsewhere is refused rather than allowing two sockets to represent the same identity.
 - **No inter-agent handoff.** The theorist's analysis doesn't yet feed the
   experimentalist's next configuration choice - see "The science task" above.
 
