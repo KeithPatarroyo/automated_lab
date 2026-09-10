@@ -1,0 +1,12 @@
+node_modules
+**/node_modules
+**/dist
+client/src
+client/index.html
+client/vite.config.ts
+server/data
+.git
+docs
+lab_sketch
+Paper
+*.log
