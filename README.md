@@ -55,7 +55,7 @@ The two agents' behavior is controlled by `SIMULATION_MODE` in `server/.env`:
 Four rooms - Workshop, Primary Lab, Kitchen/Corridor, Office - connected by door gaps,
 real-time multiplayer movement, and a shared collision system (see below). Every
 character now has its own sprite, extracted from LPC-format character sheets generated
-via the [Universal LPC Spritesheet Character Generator](https://liberatedpixelcup.github.io/)
+via the [Universal LPC Spritesheet Character Generator](https://liberatedpixelcup.github.io/Universal-LPC-Spritesheet-Character-Generator)
 (`client/scripts/extract-npc-sprite.py` for static NPCs, `extract-player-sprite.py` for
 the player and the two agents), each posed at a specific facing direction (and, for
 three of them, seated) chosen per-character:
@@ -286,6 +286,6 @@ Everything below is used under its stated license; keep this list in sync with
 | Modern Machines (CNC mill/lathe/router, 3D printers, laser cutter, workshop tools/materials/signage - 55 icons auto-extracted from a reference sheet via `client/scripts/pack-ai-modern-machines.py`) | User-provided (Keith), AI-generated | - |
 | Automated Lab (analytical/wet-lab instruments, glassware, tools, fittings, monitor/signage icons, GHS hazard diamonds - 70 icons auto-extracted from a reference sheet via `client/scripts/pack-ai-automated-lab.py`) | User-provided (Keith), AI-generated | - |
 | Glassware (flasks, beakers, test tubes, funnels, condensers, stoppers/joints, retort stands/clamps, small hardware - 312 icons auto-extracted from a reference sheet via `client/scripts/pack-ai-glassware.py`) | User-provided (Keith), AI-generated | - |
-| Player character spritesheets (male + female, Lab/outside outfits, full walk+sit cycles) | CC-BY-SA 3.0 / GPL 3.0 (per the generator's combined assets) | Generated via the [Universal LPC Spritesheet Character Generator](https://liberatedpixelcup.github.io/); Liberated Pixel Cup / OpenGameArt contributors |
-| The two LLM agents' character spritesheets (Lab/outside outfits, full walk cycles) | CC-BY-SA 3.0 / GPL 3.0 (per the generator's combined assets) | Generated via the [Universal LPC Spritesheet Character Generator](https://liberatedpixelcup.github.io/); Liberated Pixel Cup / OpenGameArt contributors |
-| All 12 static NPC portraits (3 named + 9 background workers, one static pose each) | CC-BY-SA 3.0 / GPL 3.0 (per the generator's combined assets) | Generated via the [Universal LPC Spritesheet Character Generator](https://liberatedpixelcup.github.io/); Liberated Pixel Cup / OpenGameArt contributors |
+| Player character spritesheets (male + female, Lab/outside outfits, full walk+sit cycles) | CC-BY-SA 3.0 / GPL 3.0 (per the generator's combined assets) | Generated via the [Universal LPC Spritesheet Character Generator](https://liberatedpixelcup.github.io/Universal-LPC-Spritesheet-Character-Generator); Liberated Pixel Cup / OpenGameArt contributors |
+| The two LLM agents' character spritesheets (Lab/outside outfits, full walk cycles) | CC-BY-SA 3.0 / GPL 3.0 (per the generator's combined assets) | Generated via the [Universal LPC Spritesheet Character Generator](https://liberatedpixelcup.github.io/Universal-LPC-Spritesheet-Character-Generator); Liberated Pixel Cup / OpenGameArt contributors |
+| All 12 static NPC portraits (3 named + 9 background workers, one static pose each) | CC-BY-SA 3.0 / GPL 3.0 (per the generator's combined assets) | Generated via the [Universal LPC Spritesheet Character Generator](https://liberatedpixelcup.github.io/Universal-LPC-Spritesheet-Character-Generator); Liberated Pixel Cup / OpenGameArt contributors |
