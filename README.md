@@ -112,6 +112,29 @@ restart, and is what `replay` mode bakes its loop from. The human player is deli
 **not** persisted; a visitor is an observer, not part of the simulated lab's history, and
 starts fresh every time they join.
 
+## Deployment
+
+Live at **https://automated-lab-client.vercel.app** (client) talking to
+**https://automated-lab.fly.dev** (server) - client and server deploy separately since
+the server needs a long-lived WebSocket process and a persistent disk (neither fits a
+serverless host), while the client is a static Vite build.
+
+- **Server (Fly.io):** `Dockerfile` runs `@lab/server` straight from TypeScript via
+  `tsx` (no build step - `shared` has no build script and is meant to be consumed as
+  source by both `tsx` and Vite). `fly.toml` mounts a 1GB volume at `server/data` for
+  `lab.sqlite`, so agent memory/experiment history survive redeploys. Config lives in
+  Fly secrets (`GEMINI_API_KEY`, `CLIENT_ORIGIN`), not in git. Redeploy with
+  `flyctl deploy --app automated-lab` from the repo root.
+- **Client (Vercel):** project root directory is set to `client/` (via
+  `vercel project update automated-lab-client --root-directory client`, not
+  `vercel.json` - a bare `rootDirectory` key there fails schema validation), so `npm
+  install` still runs at the repo root and resolves the `@lab/shared` workspace
+  correctly. `VITE_SERVER_URL` (production env var) points at the Fly server.
+  Redeploy with `vercel --prod --yes` from the repo root.
+- Changing either URL means updating the other side: a new client URL needs
+  `flyctl secrets set CLIENT_ORIGIN=<url> --app automated-lab` (CORS), and a new server
+  URL needs the `VITE_SERVER_URL` env var updated in the Vercel project and redeployed.
+
 ## Editing the map
 
 `client/public/assets/map/lab.json` is a **hand-edited Tiled map**, not generated code -
