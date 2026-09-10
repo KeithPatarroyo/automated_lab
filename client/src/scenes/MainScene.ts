@@ -23,6 +23,7 @@ import { AgentLogPanel } from "../ui/AgentLogPanel";
 import { DialogueBox } from "../ui/DialogueBox";
 import { ComputerModal } from "../ui/ComputerModal";
 import { InteractionPrompt } from "../ui/InteractionPrompt";
+import { HelpModal } from "../ui/HelpModal";
 
 const NPC_DISPLAY_NAMES: Record<string, string> = {
   workshop_tech: "Workshop Tech",
@@ -114,6 +115,7 @@ export class MainScene extends Phaser.Scene {
   private dialogueBox!: DialogueBox;
   private computerModal!: ComputerModal;
   private interactionPrompt!: InteractionPrompt;
+  private helpModal!: HelpModal;
   private inputLocked = false;
   private activeSessionId: string | null = null;
 
@@ -248,6 +250,7 @@ export class MainScene extends Phaser.Scene {
     this.dialogueBox = new DialogueBox();
     this.computerModal = new ComputerModal();
     this.interactionPrompt = new InteractionPrompt();
+    this.helpModal = new HelpModal();
 
     this.registerSocketListeners();
   }
@@ -346,7 +349,7 @@ export class MainScene extends Phaser.Scene {
   }
 
   update(_time: number, deltaMs: number): void {
-    const uiBlocksMovement = this.inputLocked || this.chatPanel.isFocused;
+    const uiBlocksMovement = this.inputLocked || this.chatPanel.isFocused || this.helpModal.isOpen;
 
     let dx: -1 | 0 | 1 = 0;
     let dy: -1 | 0 | 1 = 0;
