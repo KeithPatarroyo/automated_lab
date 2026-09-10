@@ -28,7 +28,7 @@ export class AgentNpc {
     this.sprite.setOrigin(0.5, 0.85);
     this.label = scene.add.text(x, y - 30, displayName, {
       fontSize: "11px",
-      color: "#ffe08a",
+      color: "#00e5ff",
       backgroundColor: "#00000080",
       padding: { left: 3, right: 3, top: 1, bottom: 1 },
     });

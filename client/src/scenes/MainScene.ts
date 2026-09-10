@@ -203,7 +203,7 @@ export class MainScene extends Phaser.Scene {
       this.add
         .text(x, y - 14, label, {
           fontSize: "10px",
-          color: "#ffe08a",
+          color: "#ff5c5c",
           backgroundColor: "#00000080",
           padding: { left: 3, right: 3, top: 1, bottom: 1 },
         })
