@@ -1,6 +1,6 @@
 # Automated Lab
 
-![Bird's-eye view of the lab](docs/lab-birdseye.png)
+![Bird's-eye view of Lab 1 (left) and Lab 2 (right)](docs/lab-birdseye.png)
 
 A browser-based, top-down 2D "virtual lab" - Pokémon-style movement and dialogue -
 loosely inspired by the *Generative Agents* paper (`Paper/2304.03442v2.pdf`) and Andrew
@@ -8,11 +8,12 @@ White's drugcrow.ai concept. Two autonomous LLM-agent scientists (`lab_scientist
 `theoretical_scientist`) run a real closed-loop science task around the clock - walking
 between rooms, running experiments, analyzing data, and occasionally chatting with each
 other - while any number of human visitors can log in, walk around, watch, and talk to
-them or to the in-world computer terminals. The screenshot above is the whole map at
-once (`?birdseye=1`, see below): Workshop top-left, Primary Lab top-right, Kitchen
-bottom-left, Office bottom-right, every character - the two agents, the three named
-flavor NPCs, and all 9 background workers - now rendered with its own distinct sprite
-rather than a shared placeholder tile.
+them or to the in-world computer terminals. Each screenshot above is one lab's whole map
+at once (`?birdseye=1`, see below) - Workshop top-left, Primary Lab top-right, Kitchen
+bottom-left, Office bottom-right in both - every character - the two agents, the three
+named flavor NPCs, and all 9 background workers - rendered with its own distinct sprite
+rather than a shared placeholder tile. See "Multiple labs (local)" below for what having
+two of these actually means.
 
 See `lab_sketch/SKETCH.png` for the real floor-plan this loosely riffs on.
 
@@ -84,11 +85,14 @@ three of them, seated) chosen per-character:
 
 The two in-world computer terminals (Lab, Office) each have a floating name label so
 they're identifiable without walking up to them. Loading the client with `?birdseye=1`
-(e.g. `http://localhost:5173/?birdseye=1`) zooms the camera out to fit the whole map,
-hides the chat/agent-log panels and your own sprite/nametag, and additionally marks
-every spawn point with a highlighted tile + label - useful for regenerating
-`docs/lab-birdseye.png` after a map edit; none of that spawn-point marking shows up
-during normal play. Log in as usual; the view switches once the map scene starts.
+(e.g. `http://localhost:5173/?birdseye=1`, or `?lab=lab_2&birdseye=1` for the other lab)
+zooms the camera out to fit the whole map, hides the chat/agent-log panels, the top-bar
+buttons, and your own sprite/nametag, and additionally marks every spawn point with a
+highlighted tile + label - useful for regenerating `docs/lab-birdseye.png` after a map
+edit; none of that spawn-point marking shows up during normal play. Log in as usual; the
+view switches once the map scene starts. `docs/lab-birdseye.png` itself is the two labs'
+screenshots placed side by side with a small "Lab 1"/"Lab 2" label header - there's no
+script for this yet, it was assembled by hand from the two individual captures.
 
 ## The science task
 

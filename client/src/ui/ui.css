@@ -7,7 +7,8 @@
 
 /* ?birdseye=1: hide chrome for a clean full-map screenshot */
 body.birdseye .lab-chat,
-body.birdseye .lab-agent-log {
+body.birdseye .lab-agent-log,
+body.birdseye .lab-topbar-buttons {
   display: none;
 }
 
