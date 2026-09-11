@@ -16,7 +16,7 @@ const SESSION_GAP_MS = 30 * 60 * 1000;
 // between decisions was ~2min of "thinking" with nothing to show for it; holding each
 // one for a much shorter, fixed duration is what actually compresses a multi-hour
 // recording into a watchable demo loop, rather than a separate speed multiplier on top.
-const HOLD_DURATION_MS = 15_000;
+const HOLD_DURATION_MS = 10_000;
 // A conversation line is a quick dialogue beat, not a multi-minute decision - held for
 // less time than HOLD_DURATION_MS so a two-line exchange doesn't drag the replay out.
 const CHAT_HOLD_DURATION_MS = 8_000;
@@ -105,6 +105,14 @@ function latestSession(all: AgentLogEntry[]): AgentLogEntry[] {
   return all.slice(startIdx);
 }
 
+/** Picks a specific recorded window by wall-clock time instead of auto-detecting "the
+ * latest session" - for pinning a replay to a particular, known-good stretch of
+ * recorded activity (see env.ts's REPLAY_WINDOW_START/REPLAY_WINDOW_HOURS) rather than
+ * whatever happens to be most recent. */
+function sessionInWindow(all: AgentLogEntry[], startTs: number, endTs: number): AgentLogEntry[] {
+  return all.filter((r) => r.ts >= startTs && r.ts < endTs);
+}
+
 function bakeAgent(
   npcId: string,
   rows: AgentLogEntry[],
@@ -159,10 +167,14 @@ function bakeAgent(
   return segments;
 }
 
-/** Bakes the most recent recorded session into a replayable loop - pure offline
- * computation from the database's log, re-simulating movement with the exact same
- * pathfinding/collision code the live loop uses, so the walk looks like it really did.
- * Nothing here writes to the database - replay is read-only with respect to it. */
+/** Bakes a recorded session into a replayable loop - pure offline computation from the
+ * database's log, re-simulating movement with the exact same pathfinding/collision code
+ * the live loop uses, so the walk looks like it really did. Nothing here writes to the
+ * database - replay is read-only with respect to it.
+ *
+ * Defaults to the most recent recorded session (see latestSession); pass `window` to
+ * pin it to a specific wall-clock stretch instead (see env.ts's REPLAY_WINDOW_START/
+ * REPLAY_WINDOW_HOURS) - e.g. a known-good recording rather than whatever's freshest. */
 export function bakeReplay(
   db: Db,
   npcIds: string[],
@@ -170,8 +182,10 @@ export function bakeReplay(
   tileWidth: number,
   tileHeight: number,
   isTileBlocked: (tx: number, ty: number) => boolean,
+  window?: { startTs: number; endTs: number },
 ): BakedReplay {
-  const session = latestSession(db.loadAllAgentLog());
+  const all = db.loadAllAgentLog();
+  const session = window ? sessionInWindow(all, window.startTs, window.endTs) : latestSession(all);
   const byAgent: Record<string, Segment[]> = {};
   for (const npcId of npcIds) {
     if (!getPersona(npcId)) continue;

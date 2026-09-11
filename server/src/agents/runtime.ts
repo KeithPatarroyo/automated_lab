@@ -3,7 +3,7 @@ import { nanoid } from "nanoid";
 import type { AgentLogEntry, AgentNpcState, ClientToServerEvents, ServerToClientEvents } from "@lab/shared";
 import { askAgent } from "../ai/geminiClient.js";
 import { mapMeta, TILE_WIDTH, TILE_HEIGHT, isBlocked } from "../data/mapMeta.js";
-import { SIMULATION_MODE } from "../env.js";
+import { REPLAY_WINDOW_HOURS, REPLAY_WINDOW_START, SIMULATION_MODE } from "../env.js";
 import { AGENT_PERSONAS } from "./personas.js";
 import { PersistedMemoryStore } from "./persistedMemoryStore.js";
 import {
@@ -65,9 +65,18 @@ export const memoryStore = new PersistedMemoryStore(db, Object.keys(AGENT_PERSON
 // from every tick instead of running the live decision loop. See replay/replayEngine.ts.
 let replayPlayer: ReplayPlayer | null = null;
 
+/** Parses REPLAY_WINDOW_START/REPLAY_WINDOW_HOURS into a bakeReplay window, or
+ * undefined if either is unset/invalid - falls back to "the latest recorded session"
+ * in that case (see replayEngine.ts's bakeReplay). */
+function replayWindow(): { startTs: number; endTs: number } | undefined {
+  const startTs = Date.parse(REPLAY_WINDOW_START);
+  if (Number.isNaN(startTs) || !(REPLAY_WINDOW_HOURS > 0)) return undefined;
+  return { startTs, endTs: startTs + REPLAY_WINDOW_HOURS * 60 * 60 * 1000 };
+}
+
 function buildInitialAgentStates(): Record<string, AgentRuntimeState> {
   if (SIMULATION_MODE === "replay") {
-    const baked = bakeReplay(db, Object.keys(AGENT_PERSONAS), mapMeta, TILE_WIDTH, TILE_HEIGHT, isBlocked);
+    const baked = bakeReplay(db, Object.keys(AGENT_PERSONAS), mapMeta, TILE_WIDTH, TILE_HEIGHT, isBlocked, replayWindow());
     replayPlayer = new ReplayPlayer(baked);
     const frames = replayPlayer.initialFrames();
     return Object.fromEntries(

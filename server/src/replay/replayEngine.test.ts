@@ -20,10 +20,10 @@ const fakeMapMeta: MapMeta = {
 const noBlock = () => false;
 const NPC_IDS = ["lab_scientist", "theoretical_scientist"];
 
-function bake(rows: { ts: number; npcId: string; text: string }[]) {
+function bake(rows: { ts: number; npcId: string; text: string }[], window?: { startTs: number; endTs: number }) {
   const db = openDb(":memory:");
   rows.forEach((r, i) => db.saveAgentLogEntry({ id: `e${i}`, ts: r.ts, npcId: r.npcId, text: r.text }));
-  const baked = bakeReplay(db, NPC_IDS, fakeMapMeta, TILE, TILE, noBlock);
+  const baked = bakeReplay(db, NPC_IDS, fakeMapMeta, TILE, TILE, noBlock, window);
   db.close();
   return baked;
 }
@@ -40,6 +40,23 @@ describe("bakeReplay", () => {
     ]);
     const texts = baked.timeline.map((s) => s.logText);
     expect(texts).toEqual(["run_experiment - kicked off a real run", "analyze - looked at the results"]);
+  });
+
+  it("bakes a specific window instead, ignoring the latest-session heuristic entirely", () => {
+    const baked = bake(
+      [
+        // Would normally win as "the latest session" - excluded by the window instead.
+        { ts: 3_000_000, npcId: "lab_scientist", text: "run_experiment - too late, outside the window" },
+        { ts: 1_000_000, npcId: "lab_scientist", text: "run_experiment - inside the window" },
+        { ts: 1_500_000, npcId: "theoretical_scientist", text: "analyze - also inside the window" },
+        // Right at the recorded start, before an intentionally stale gap - included
+        // anyway since an explicit window overrides the session-gap heuristic.
+        { ts: 0, npcId: "lab_scientist", text: "run_experiment - before the window, excluded" },
+      ],
+      { startTs: 500_000, endTs: 2_000_000 },
+    );
+    const texts = baked.timeline.map((s) => s.logText);
+    expect(texts).toEqual(["run_experiment - inside the window", "analyze - also inside the window"]);
   });
 
   it("holds a fixed position for non-move decisions", () => {
@@ -94,7 +111,7 @@ describe("ReplayPlayer", () => {
   it("emits due log lines in order as the clock advances, and produces frames", () => {
     // Two decisions for the SAME agent - each agent's baked clock starts at 0
     // independently, so these are the ones actually staggered relative to each other
-    // (each HOLD_DURATION_MS segment is 15s long).
+    // (each HOLD_DURATION_MS segment is 10s long).
     const baked = bake([
       { ts: 1000, npcId: "lab_scientist", text: "run_experiment - first" },
       { ts: 2000, npcId: "lab_scientist", text: "analyze - second" },
@@ -105,8 +122,9 @@ describe("ReplayPlayer", () => {
     expect(first.dueLogLines.map((s) => s.logText)).toEqual(["run_experiment - first"]);
     expect(first.frames.lab_scientist.activity).toBe("running_experiment");
 
-    // Advance past the first segment's end (15s) into the second.
-    const second = player.tick(20_000);
+    // Advance past the first segment's end (10s) into the second, but staying well
+    // short of the total 20s loop duration so this doesn't also wrap back to the start.
+    const second = player.tick(15_000);
     expect(second.dueLogLines.map((s) => s.logText)).toEqual(["analyze - second"]);
   });
 

@@ -43,12 +43,19 @@ The two agents' behavior is controlled by `SIMULATION_MODE` in `server/.env`:
   analyzing data, walking the map with real pathfinding, occasionally talking to each
   other. This is genuinely evolving - new experiment data, new memory, new conversation
   every time - but it costs LLM tokens continuously for as long as the server runs.
-- **`replay`** - a fixed recorded session (baked from the database's most recent `live`
-  run) loops on repeat with **no background decision loop running at all**, so the two
-  agents cost zero LLM tokens no matter how long it plays. Useful for a public demo or
-  just leaving the tab open without burning API credits. A human's own chat with the
-  terminals or the two agents still calls Gemini normally in either mode - replay only
-  affects the two background agents' own behavior, not human interaction.
+- **`replay`** - a fixed recorded session loops on repeat with **no background decision
+  loop running at all**, so the two agents cost zero LLM tokens no matter how long it
+  plays. Useful for a public demo or just leaving the tab open without burning API
+  credits. A human's own chat with the terminals or the two agents still calls Gemini
+  normally in either mode - replay only affects the two background agents' own
+  behavior, not human interaction. By default it bakes the database's most recent
+  `live` session; set `REPLAY_WINDOW_START` (ISO-8601) and `REPLAY_WINDOW_HOURS`
+  together to pin it to a specific recorded window instead (see
+  `server/.env.example`) - e.g. the live deployment currently replays a 3.5-hour
+  window from `2026-09-11T07:00:42.955Z`, which bakes down to about 18 minutes of
+  actual loop playback (each recorded decision holds for 10s - see
+  `HOLD_DURATION_MS` in `server/src/replay/replayEngine.ts` - rather than the ~2
+  real minutes it took live) before repeating.
 
 ## The world & characters
 
@@ -151,8 +158,11 @@ serverless host), while the client is a static Vite build.
   `tsx` (no build step - `shared` has no build script and is meant to be consumed as
   source by both `tsx` and Vite). `fly.toml` mounts a 1GB volume at `server/data` for
   `lab.sqlite`, so agent memory/experiment history, Keith/Anna's own state, and the
-  public chat log (see Persistence above) all survive redeploys. Config lives in Fly secrets
-  (`GEMINI_API_KEY`, `CLIENT_ORIGIN`, `KEITH_PASSWORD`, `ANNA_PASSWORD`), not in git.
+  public chat log (see Persistence above) all survive redeploys. Secrets
+  (`GEMINI_API_KEY`, `CLIENT_ORIGIN`, `KEITH_PASSWORD`, `ANNA_PASSWORD`) live in Fly
+  secrets, not in git; non-secret config (`SIMULATION_MODE`, `REPLAY_WINDOW_START`,
+  `REPLAY_WINDOW_HOURS` - see "Two ways to run it" above) lives directly in `fly.toml`'s
+  `[env]` block instead, since there's nothing sensitive about them.
   Redeploy with `flyctl deploy --app automated-lab` from the repo root.
 - **Client (Vercel):** project root directory is set to `client/` (via
   `vercel project update automated-lab-client --root-directory client`, not

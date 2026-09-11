@@ -5,6 +5,9 @@ primary_region = "iad"
 
 [env]
   PORT = "3001"
+  SIMULATION_MODE = "replay"
+  REPLAY_WINDOW_START = "2026-09-11T07:00:42.955Z"
+  REPLAY_WINDOW_HOURS = "3.5"
 
 [http_service]
   internal_port = 3001
