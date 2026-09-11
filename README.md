@@ -29,8 +29,8 @@ npm run dev                          # client (Vite, :5173) + server (Socket.IO,
 ```
 
 Open http://localhost:5173. The login screen offers **Visitor** (pick a name and a
-male/female character - ephemeral, no persistence) or **Log In** (Keith or Anna only,
-password-protected and persisted - see "Login & human accounts" below). Without
+male/female character - ephemeral, no persistence) or **Log In** (two named accounts
+only, password-protected and persisted - see "Login & human accounts" below). Without
 `GEMINI_API_KEY` set, everything else still works - the computer terminals and talking
 to the two agents will show a visible error instead of crashing.
 
@@ -114,16 +114,17 @@ next configuration choice - each agent's decision loop runs independently.
 
 The login screen (`client/src/ui/LoginForm.ts`) offers two paths:
 
-- **Visitor** - any name (except "Keith" or "Anna", any case - rejected with an inline
-  error so no one can impersonate a real account) plus a male/female pick. Fully
-  ephemeral: fresh random spawn every time, own state never persisted.
-- **Log In** - Keith or Anna only, real username/password
-  (`server/src/accounts/humanAccounts.ts`), checked against the `KEITH_PASSWORD`/
-  `ANNA_PASSWORD` env vars (a plain equality check, not hashed - fine for a 2-person
-  demo, not a real auth system). A wrong password, or logging in as an account that's
-  already connected elsewhere (**single session per account** - no two sockets can
-  represent the same identity), shows an inline error and leaves the form open rather
-  than failing silently.
+- **Visitor** - any name except one of the two reserved account names (any case -
+  rejected with an inline error so no one can impersonate a real account) plus a
+  male/female pick. Fully ephemeral: fresh random spawn every time, own state never
+  persisted.
+- **Log In** - the two named accounts only, real username/password
+  (`server/src/accounts/humanAccounts.ts`), checked against a password env var per
+  account (see `server/.env.example` for the exact names) - a plain equality check,
+  not hashed - fine for a small trusted group, not a real auth system. A wrong
+  password, or logging in as an account that's already connected elsewhere (**single
+  session per account** - no two sockets can represent the same identity), shows an
+  inline error and leaves the form open rather than failing silently.
 
 A successful login resumes at that account's last known position/facing instead of a
 random spawn - see Persistence below for exactly what's saved.
@@ -135,16 +136,17 @@ random spawn - see Persistence below for exactly what's saved.
 log/target, the activity feed, and each agent's position - all of it survives a server
 restart, and is what `replay` mode bakes its loop from.
 
-Keith and Anna (see Login & human accounts above) are also persisted, in two more
-tables: `human_snapshot` (last known x/y/facing, one row per account, overwritten - not
-a movement history) and `human_interaction_log` (their own turns in an NPC-agent chat or
-on a computer terminal - a Visitor's equivalent sessions are never written here).
+The two named accounts (see Login & human accounts above) are also persisted, in two
+more tables: `human_snapshot` (last known x/y/facing, one row per account, overwritten -
+not a movement history) and `human_interaction_log` (their own turns in an NPC-agent
+chat or on a computer terminal - a Visitor's equivalent sessions are never written
+here).
 
 The **public chat log** (`public_chat_log` table) is different from both: it records
-everything said by anyone - Keith, Anna, or a Visitor (labeled `"<name> (visitor)"`),
+everything said by anyone - a named account or a Visitor (labeled `"<name> (visitor)"`),
 plus a `"<name> (visitor) has left."` system notice on a Visitor's disconnect - and
 survives a restart regardless of who sent it. A newly-joined Visitor only sees chat sent
-after they arrive (nothing retroactive); logging in as Keith or Anna instead loads the
+after they arrive (nothing retroactive); logging in as a named account instead loads the
 whole persisted history.
 
 ## Deployment
@@ -157,10 +159,10 @@ serverless host), while the client is a static Vite build.
 - **Server (Fly.io):** `Dockerfile` runs `@lab/server` straight from TypeScript via
   `tsx` (no build step - `shared` has no build script and is meant to be consumed as
   source by both `tsx` and Vite). `fly.toml` mounts a 1GB volume at `server/data` for
-  `lab.sqlite`, so agent memory/experiment history, Keith/Anna's own state, and the
-  public chat log (see Persistence above) all survive redeploys. Secrets
-  (`GEMINI_API_KEY`, `CLIENT_ORIGIN`, `KEITH_PASSWORD`, `ANNA_PASSWORD`) live in Fly
-  secrets, not in git; non-secret config (`SIMULATION_MODE`, `REPLAY_WINDOW_START`,
+  `lab.sqlite`, so agent memory/experiment history, the two named accounts' own state,
+  and the public chat log (see Persistence above) all survive redeploys. Secrets
+  (`GEMINI_API_KEY`, `CLIENT_ORIGIN`, and the two account password env vars) live in
+  Fly secrets, not in git; non-secret config (`SIMULATION_MODE`, `REPLAY_WINDOW_START`,
   `REPLAY_WINDOW_HOURS` - see "Two ways to run it" above) lives directly in `fly.toml`'s
   `[env]` block instead, since there's nothing sensitive about them.
   Redeploy with `flyctl deploy --app automated-lab` from the repo root.
@@ -260,23 +262,11 @@ multiple browser tabs. Worth checking each time you touch movement/UI:
 - Walking up to an NPC or either agent (facing it) shows an interact prompt; talking
   opens a dialogue box and blocks movement until closed; other players are unaffected.
 - Chat messages appear in every connected tab. A newly-joined Visitor tab starts with
-  an empty log (no retroactive history); logging in as Keith or Anna instead shows the
-  full persisted history immediately.
+  an empty log (no retroactive history); logging in as a named account instead shows
+  the full persisted history immediately.
 - Using a computer terminal round-trips through the server only - check the browser's
   network tab and confirm there is never a direct request to
   `generativelanguage.googleapis.com`, only same-origin Socket.IO traffic.
-
-## Known limitations (by design, not bugs)
-
-- **Only Keith and Anna have persisted position/interaction state** (see Persistence
-  above). A Visitor's own session is still fully ephemeral; only the shared public chat
-  log records everyone.
-- **Passwords are a plain equality check** against an env var, not hashed. Fine for a
-  2-person demo; revisit before this means anything more than that.
-- **Single session per account.** Logging in as Keith while already connected
-  elsewhere is refused rather than allowing two sockets to represent the same identity.
-- **No inter-agent handoff.** The theorist's analysis doesn't yet feed the
-  experimentalist's next configuration choice - see "The science task" above.
 
 ## Art & asset credits
 
