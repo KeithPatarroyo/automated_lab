@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { createAgentAnimations, createPlayerAnimations } from "../entities/spriteFrames";
 import { MAP_TILESETS } from "./mapTilesets";
+import { LABS } from "../config/labs";
 
 const CHARACTERS_SHEET_PATH = "/assets/tilesets/kenney_rpg-urban-pack/Tilemap/tilemap_packed.png";
 const PLAYER_LAB_MALE_SHEET_PATH = "/assets/sprites/player-walk-lab.png";
@@ -93,7 +94,11 @@ export class BootScene extends Phaser.Scene {
       frameWidth: 32,
       frameHeight: 32,
     });
-    this.load.tilemapTiledJSON("lab-map", "/assets/map/lab.json");
+    // Every known lab's tilemap is preloaded unconditionally - they're tiny JSON files
+    // and every tileset image they reference is already shared/loaded regardless of
+    // which one ends up active, so there's no per-lab asset cost to paying for both up
+    // front (see config/labs.ts and ChangeLabModal for how the active one is chosen).
+    for (const lab of LABS) this.load.tilemapTiledJSON(lab.tilemapKey, lab.tilemapPath);
   }
 
   create(): void {

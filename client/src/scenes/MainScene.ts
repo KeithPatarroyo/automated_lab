@@ -25,6 +25,8 @@ import { ComputerModal } from "../ui/ComputerModal";
 import { InteractionPrompt } from "../ui/InteractionPrompt";
 import { HelpModal } from "../ui/HelpModal";
 import { ViewToggleButton } from "../ui/ViewToggleButton";
+import { ChangeLabModal } from "../ui/ChangeLabModal";
+import type { LabDef } from "../config/labs";
 
 const NPC_DISPLAY_NAMES: Record<string, string> = {
   workshop_tech: "Workshop Tech",
@@ -85,6 +87,7 @@ function isFacingTarget(px: number, py: number, tx: number, ty: number, facing: 
 export class MainScene extends Phaser.Scene {
   private joinAck!: JoinAck;
   private username!: string;
+  private lab!: LabDef;
 
   private localPlayer!: LocalPlayer;
   private remotePlayers = new Map<string, RemotePlayer>();
@@ -118,6 +121,7 @@ export class MainScene extends Phaser.Scene {
   private interactionPrompt!: InteractionPrompt;
   private helpModal!: HelpModal;
   private viewToggle!: ViewToggleButton;
+  private changeLabModal!: ChangeLabModal;
   private inputLocked = false;
   private activeSessionId: string | null = null;
 
@@ -125,13 +129,14 @@ export class MainScene extends Phaser.Scene {
     super("MainScene");
   }
 
-  init(data: { joinAck: JoinAck; username: string }): void {
+  init(data: { joinAck: JoinAck; username: string; lab: LabDef }): void {
     this.joinAck = data.joinAck;
     this.username = data.username;
+    this.lab = data.lab;
   }
 
   create(): void {
-    const map = this.make.tilemap({ key: "lab-map" });
+    const map = this.make.tilemap({ key: this.lab.tilemapKey });
     // Every layer can contain tiles from any of the map's tilesets, so all of them are
     // passed to every createLayer call - Phaser resolves each tile's GID against
     // whichever tileset it actually belongs to.
@@ -253,6 +258,7 @@ export class MainScene extends Phaser.Scene {
     this.computerModal = new ComputerModal();
     this.interactionPrompt = new InteractionPrompt();
     this.viewToggle = new ViewToggleButton((birdsEye) => this.setBirdsEyeCamera(birdsEye));
+    this.changeLabModal = new ChangeLabModal(this.lab.id);
     this.helpModal = new HelpModal();
 
     this.registerSocketListeners();
@@ -352,7 +358,8 @@ export class MainScene extends Phaser.Scene {
   }
 
   update(_time: number, deltaMs: number): void {
-    const uiBlocksMovement = this.inputLocked || this.chatPanel.isFocused || this.helpModal.isOpen;
+    const uiBlocksMovement =
+      this.inputLocked || this.chatPanel.isFocused || this.helpModal.isOpen || this.changeLabModal.isOpen;
 
     let dx: -1 | 0 | 1 = 0;
     let dy: -1 | 0 | 1 = 0;

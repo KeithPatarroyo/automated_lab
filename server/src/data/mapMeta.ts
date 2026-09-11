@@ -2,9 +2,10 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { COLLISION_LAYER_NAMES, type MapMeta } from "@lab/shared";
+import { MAP_FILE } from "../env.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const MAP_PATH = path.resolve(__dirname, "../../../client/public/assets/map/lab.json");
+const MAP_PATH = path.resolve(__dirname, "../../../client/public/assets/map", MAP_FILE);
 
 interface TiledTileLayer {
   type: "tilelayer";

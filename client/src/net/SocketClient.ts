@@ -21,19 +21,21 @@ export interface JoinAck {
   agentLogTail: AgentLogEntry[];
 }
 
-const SERVER_URL = import.meta.env.VITE_SERVER_URL ?? "http://localhost:3001";
-
 class SocketClient {
   socket: GameSocket | null = null;
 
-  connect(): GameSocket {
+  /** `serverUrl` picks which lab's server this connects to (see config/labs.ts) - a
+   * page load only ever targets one lab (switching is a full reload, see
+   * ChangeLabModal), so the `if (this.socket) return this.socket` guard below is never
+   * hit twice with a different URL in one page lifetime. */
+  connect(serverUrl: string): GameSocket {
     if (this.socket) return this.socket;
-    this.socket = io(SERVER_URL, { transports: ["websocket"] });
+    this.socket = io(serverUrl, { transports: ["websocket"] });
     return this.socket;
   }
 
-  join(username: string, gender: Gender): Promise<JoinAck> {
-    const socket = this.connect();
+  join(serverUrl: string, username: string, gender: Gender): Promise<JoinAck> {
+    const socket = this.connect(serverUrl);
     return new Promise((resolve, reject) => {
       const onAck = (payload: JoinAck) => {
         socket.off("join_error", onError);
@@ -49,8 +51,8 @@ class SocketClient {
     });
   }
 
-  login(username: string, password: string): Promise<JoinAck> {
-    const socket = this.connect();
+  login(serverUrl: string, username: string, password: string): Promise<JoinAck> {
+    const socket = this.connect(serverUrl);
     return new Promise((resolve, reject) => {
       const onAck = (payload: JoinAck) => {
         socket.off("login_error", onError);

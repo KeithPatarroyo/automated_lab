@@ -182,6 +182,37 @@ serverless host), while the client is a static Vite build.
   `flyctl secrets set CLIENT_ORIGIN=<url> --app automated-lab` (CORS), and a new server
   URL needs the `VITE_SERVER_URL` env var updated in the Vercel project and redeployed.
 
+## Multiple labs (local)
+
+A "lab" is a full map + database + agent simulation - not a room inside one server.
+Running more than one means running more than one **server process**, each an
+unmodified copy of the same codebase pointed at its own map/database via env vars
+(`MAP_FILE`, `DB_FILE` - see `server/.env.example`; `PORT`/`SIMULATION_MODE` already
+existed). There's no single-process multi-tenancy here on purpose - `mapMeta.ts`,
+`db/singleton.ts`, `game/state.ts`'s player list, and `agents/runtime.ts`'s agent state
+are all plain module-level singletons, so a second lab is simplest as a second OS
+process rather than a rewrite of all four into instantiable classes.
+
+```bash
+npm run dev:labs   # lab 1 (existing map/db) in replay mode on :3001,
+                    # lab 2 (lab_2.json, a separate lab_2.sqlite) live on :3002,
+                    # one shared Vite client on :5173
+```
+
+The client (`client/src/config/labs.ts`) knows about both by default for local dev
+(`http://localhost:3001`/`:3002`) with no env vars needed; a deployed build would set
+`VITE_LAB1_SERVER_URL`/`VITE_LAB2_SERVER_URL` instead (falling back to the existing
+`VITE_SERVER_URL` for lab 1, so today's deployed client needs no changes to keep being
+"lab 1" - which lab each of these deployed servers would live and how many Fly
+machines they'd need is genuinely undecided, not designed yet).
+
+The **Change Lab** button (top-right, next to Bird's-eye/Help) opens a picker; choosing
+a different lab does a full page reload to `?lab=<id>` rather than an in-place scene
+switch - `MainScene`'s socket listeners and every top-bar UI class have no teardown
+path today, and a reload gets a clean reconnect for free from the browser instead of
+needing one built. Since each lab has its own accounts/database, switching labs always
+lands you back on that lab's own login screen - nothing about your session carries over.
+
 ## Editing the map
 
 `client/public/assets/map/lab.json` is a **hand-edited Tiled map**, not generated code -

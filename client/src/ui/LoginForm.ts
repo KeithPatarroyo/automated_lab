@@ -12,6 +12,7 @@ type Mode = "select" | "visitor" | "account";
 export function showLoginForm(
   onVisitorSubmit: (username: string, gender: Gender) => Promise<void>,
   onAccountLogin: (username: string, password: string) => Promise<void>,
+  labName: string,
 ): void {
   const container = el("div", "lab-ui lab-login");
   uiRoot().appendChild(container);
@@ -29,6 +30,7 @@ export function showLoginForm(
     container.innerHTML = `
       <div class="lab-login-card">
         <h1>Automated Lab</h1>
+        <p class="lab-login-subtitle">${labName}</p>
         <div class="lab-login-mode-select">
           <button type="button" data-mode="login">Log In</button>
           <button type="button" data-mode="visitor">Visitor</button>
@@ -69,6 +71,7 @@ export function showLoginForm(
     container.innerHTML = `
       <div class="lab-login-card">
         <h1>Automated Lab</h1>
+        <p class="lab-login-subtitle">${labName}</p>
         <form>
           <input class="lab-login-input" name="username" placeholder="Enter a name" maxlength="24" autocomplete="off" required />
           <div class="lab-login-gender">
@@ -103,6 +106,7 @@ export function showLoginForm(
     container.innerHTML = `
       <div class="lab-login-card">
         <h1>Automated Lab</h1>
+        <p class="lab-login-subtitle">${labName}</p>
         <form>
           <input class="lab-login-input" name="account-username" placeholder="Username" autocomplete="username" required />
           <input class="lab-login-input" name="account-password" type="password" placeholder="Password" autocomplete="current-password" required />

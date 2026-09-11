@@ -7,6 +7,7 @@ import type { MemoryEntry } from "../agents/memoryStore.js";
 import type { CrystalConfig, FaultMechanism, Material, StackingSymbol } from "../science/crystalDomain.js";
 import type { ExperimentRun } from "../science/experimentLog.js";
 import type { TargetSpec } from "../science/crystalDomain.js";
+import { DB_FILE } from "../env.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // Under the test runner, default to an ephemeral in-memory database instead of the real
@@ -15,7 +16,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // even though nothing here actually asserts anything about persistence itself). vitest
 // sets VITEST=true automatically; this only affects the *default*, an explicit path
 // argument (as db/index.test.ts and persistedMemoryStore.test.ts already pass) always wins.
-const DEFAULT_DB_PATH = process.env.VITEST ? ":memory:" : path.resolve(__dirname, "../../data/lab.sqlite");
+// DB_FILE (env.ts) lets a separate "lab" instance point at its own sqlite file - see
+// README's "Multiple labs" section - defaulting to today's single-lab "lab.sqlite".
+const DEFAULT_DB_PATH = process.env.VITEST ? ":memory:" : path.resolve(__dirname, "../../data", DB_FILE);
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS agent_memory (
