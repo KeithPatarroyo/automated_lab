@@ -12,7 +12,7 @@ export class ProductivityModal {
   constructor(onRequestStats: () => void) {
     const button = el("button", "lab-topbar-button");
     button.type = "button";
-    button.textContent = "Productivity";
+    button.textContent = "Metrics";
     button.addEventListener("click", () => onRequestStats());
     topBarButtons().appendChild(button);
 
@@ -21,7 +21,7 @@ export class ProductivityModal {
     this.node.innerHTML = `
       <div class="lab-help-window">
         <div class="lab-computer-header">
-          <span>PRODUCTIVITY</span>
+          <span>METRICS</span>
           <button type="button">close [x]</button>
         </div>
         <div class="lab-help-body"><p>Loading...</p></div>
