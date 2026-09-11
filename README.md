@@ -129,6 +129,12 @@ The login screen (`client/src/ui/LoginForm.ts`) offers two paths:
 A successful login resumes at that account's last known position/facing instead of a
 random spawn - see Persistence below for exactly what's saved.
 
+**Capacity:** at most `MAX_CONNECTED_HUMANS` (20, see `server/src/game/state.ts`)
+people - Visitors and named accounts counted together - can be connected at once, since
+this is served from a single small always-on VM (see Deployment below). Once full, both
+a Visitor join and a Log In attempt are refused with an inline "the lab is full" message
+on the login screen rather than silently degrading performance for everyone already in.
+
 ## Persistence
 
 `server/src/db/index.ts` opens a SQLite database at `server/data/lab.sqlite`

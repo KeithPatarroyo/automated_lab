@@ -4,7 +4,7 @@ import type { ClientToServerEvents, ServerToClientEvents } from "@lab/shared";
 import { INTERACT_RANGE_TILES } from "@lab/shared";
 import { mapMeta, randomSpawn, TILE_WIDTH, TILE_HEIGHT } from "../data/mapMeta.js";
 import { getNpcLines } from "../data/npcDialogue.js";
-import { addPlayer, allPlayerStates, players, publicPlayerState, removePlayer, setInput } from "../game/state.js";
+import { addPlayer, allPlayerStates, MAX_CONNECTED_HUMANS, players, publicPlayerState, removePlayer, setInput } from "../game/state.js";
 import { askFast, GeminiClientError, type TerminalTurn } from "../ai/geminiClient.js";
 import { agentLogTail, agentNpcStates, agentStates, memoryStore } from "../agents/runtime.js";
 import { getPersona } from "../agents/personas.js";
@@ -40,6 +40,10 @@ function distance(ax: number, ay: number, bx: number, by: number): number {
 
 export function registerSocketHandlers(io: IoServer, socket: IoSocket): void {
   socket.on("join", ({ username, gender }) => {
+    if (players.size >= MAX_CONNECTED_HUMANS) {
+      socket.emit("join_error", { message: `The lab is full right now (${MAX_CONNECTED_HUMANS}/${MAX_CONNECTED_HUMANS}) - try again in a bit.` });
+      return;
+    }
     const clean = username.trim().slice(0, 24) || "Player";
     if (isReservedUsername(clean)) {
       socket.emit("join_error", { message: `"${clean}" is reserved - log in instead if that's you.` });
@@ -64,6 +68,10 @@ export function registerSocketHandlers(io: IoServer, socket: IoSocket): void {
   });
 
   socket.on("login", ({ username, password }) => {
+    if (players.size >= MAX_CONNECTED_HUMANS) {
+      socket.emit("login_error", { message: `The lab is full right now (${MAX_CONNECTED_HUMANS}/${MAX_CONNECTED_HUMANS}) - try again in a bit.` });
+      return;
+    }
     const account = authenticate(username, password);
     if (!account) {
       socket.emit("login_error", { message: "Invalid username or password." });

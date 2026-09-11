@@ -11,6 +11,12 @@ interface ServerPlayer extends PlayerState {
 
 export const players = new Map<string, ServerPlayer>();
 
+/** Hard cap on simultaneously connected humans - Visitors and the two named accounts
+ * counted together, since a single small always-on VM is what's actually serving this
+ * (see README's Deployment section). Enforced in socket/handlers.ts's join/login
+ * handlers, before a new player is ever added here. */
+export const MAX_CONNECTED_HUMANS = 20;
+
 export function addPlayer(
   id: string,
   username: string,

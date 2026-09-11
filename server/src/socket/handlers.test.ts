@@ -5,7 +5,7 @@ import { Server } from "socket.io";
 import { io as ioc, type Socket as ClientSocket } from "socket.io-client";
 import type { ClientToServerEvents, ServerToClientEvents } from "@lab/shared";
 import { registerSocketHandlers } from "./handlers.js";
-import { players, removePlayer } from "../game/state.js";
+import { addPlayer, MAX_CONNECTED_HUMANS, players, removePlayer } from "../game/state.js";
 import { mapMeta, TILE_WIDTH, TILE_HEIGHT } from "../data/mapMeta.js";
 import { releaseSession } from "../accounts/humanAccounts.js";
 import { db } from "../db/singleton.js";
@@ -126,6 +126,40 @@ describe("join", () => {
     });
 
     expect(ack.players.find((p: any) => p.id === ack.playerId).gender).toBe("male");
+  });
+});
+
+describe("capacity limit", () => {
+  function fillToCapacity(): void {
+    for (let i = 0; i < MAX_CONNECTED_HUMANS; i++) {
+      addPlayer(`synthetic-${i}`, `Filler${i}`, 0, 0, "male");
+    }
+  }
+
+  it("refuses a Visitor join once MAX_CONNECTED_HUMANS are already connected", async () => {
+    fillToCapacity();
+    const client = await connectClient();
+    activeClients.push(client);
+
+    const error = await new Promise<any>((resolve) => {
+      client.once("join_error", resolve);
+      client.emit("join", { username: "OneTooMany", gender: "male" });
+    });
+    expect(error.message).toMatch(/full/i);
+    expect(players.size).toBe(MAX_CONNECTED_HUMANS);
+  });
+
+  it("refuses a login once MAX_CONNECTED_HUMANS are already connected", async () => {
+    fillToCapacity();
+    const client = await connectClient();
+    activeClients.push(client);
+
+    const error = await new Promise<any>((resolve) => {
+      client.once("login_error", resolve);
+      client.emit("login", { username: "Keith", password: "test-keith-pw" });
+    });
+    expect(error.message).toMatch(/full/i);
+    expect(players.size).toBe(MAX_CONNECTED_HUMANS);
   });
 });
 
