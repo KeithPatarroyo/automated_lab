@@ -4,6 +4,11 @@ export interface LabDef {
   serverUrl: string;
   tilemapKey: string;
   tilemapPath: string;
+  /** npcId -> Phaser texture key, overriding NPC_TEXTURE_KEYS (entities/spriteFrames.ts)
+   * for this lab only - "exactly the same dynamics" everywhere except a handful of
+   * per-lab cosmetic tweaks like which way a static NPC faces (see MainScene's NPC
+   * creation loop). Omit entirely for a lab that has no overrides. */
+  npcTextureOverrides?: Record<string, string>;
 }
 
 /** Every lab this client build knows about - each one is a fully independent server
@@ -25,6 +30,7 @@ export const LABS: LabDef[] = [
     serverUrl: import.meta.env.VITE_LAB2_SERVER_URL ?? "http://localhost:3002",
     tilemapKey: "lab-map-2",
     tilemapPath: "/assets/map/lab_2.json",
+    npcTextureOverrides: { office_manager: "office_manager_npc_right" },
   },
 ];
 

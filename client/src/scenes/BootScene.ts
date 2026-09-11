@@ -25,6 +25,9 @@ const KITCHEN_NPC_FACILITIES_COORDINATOR_SHEET_PATH = "/assets/sprites/kitchen-n
 const KITCHEN_NPC_LAB_SAFETY_OFFICER_SHEET_PATH = "/assets/sprites/kitchen-npc-lab-safety-officer.png";
 const KITCHEN_NPC_OPERATIONS_ADMINISTRATOR_SHEET_PATH = "/assets/sprites/kitchen-npc-operations-administrator.png";
 const OFFICE_MANAGER_SHEET_PATH = "/assets/sprites/office-manager.png";
+// lab_2-only alternate facing for the same NPC - see config/labs.ts's
+// npcTextureOverrides and client/scripts/extract-npc-sprite.py.
+const OFFICE_MANAGER_RIGHT_SHEET_PATH = "/assets/sprites/office-manager-right.png";
 const OFFICE_NPC_1_SHEET_PATH = "/assets/sprites/office-npc-1.png";
 const OFFICE_NPC_2_SHEET_PATH = "/assets/sprites/office-npc-2.png";
 // The two LLM-agent scientists (server/src/agents/personas.ts) - full zone-switching
@@ -76,6 +79,7 @@ export class BootScene extends Phaser.Scene {
     this.load.image("kitchen_npc_lab_safety_officer", KITCHEN_NPC_LAB_SAFETY_OFFICER_SHEET_PATH);
     this.load.image("kitchen_npc_operations_administrator", KITCHEN_NPC_OPERATIONS_ADMINISTRATOR_SHEET_PATH);
     this.load.image("office_manager_npc", OFFICE_MANAGER_SHEET_PATH);
+    this.load.image("office_manager_npc_right", OFFICE_MANAGER_RIGHT_SHEET_PATH);
     this.load.image("office_npc_1", OFFICE_NPC_1_SHEET_PATH);
     this.load.image("office_npc_2", OFFICE_NPC_2_SHEET_PATH);
     this.load.spritesheet("agent_lab_scientist_lab", AGENT_LAB_SCIENTIST_LAB_SHEET_PATH, {

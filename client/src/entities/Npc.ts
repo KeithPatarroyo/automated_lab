@@ -12,13 +12,24 @@ export class Npc {
    * "worker" NPCs meant to blend into a room rather than draw attention (see
    * shared/src/protocol.ts's BACKGROUND_NPC_IDS). They're still fully interactive -
    * walking up and pressing E still shows an interaction prompt with their name and
-   * opens canned dialogue - this only affects the always-visible overhead label. */
-  constructor(scene: Phaser.Scene, npcId: string, displayName: string, x: number, y: number, showLabel = true) {
+   * opens canned dialogue - this only affects the always-visible overhead label.
+   * `textureKeyOverride`, when given, wins over the global NPC_TEXTURE_KEYS lookup -
+   * for a lab-specific cosmetic variant of the same NPC (see config/labs.ts's
+   * npcTextureOverrides). */
+  constructor(
+    scene: Phaser.Scene,
+    npcId: string,
+    displayName: string,
+    x: number,
+    y: number,
+    showLabel = true,
+    textureKeyOverride?: string,
+  ) {
     this.npcId = npcId;
     this.displayName = displayName;
     this.x = x;
     this.y = y;
-    const textureKey = NPC_TEXTURE_KEYS[npcId] ?? DEFAULT_NPC_TEXTURE_KEY;
+    const textureKey = textureKeyOverride ?? NPC_TEXTURE_KEYS[npcId] ?? DEFAULT_NPC_TEXTURE_KEY;
     const frame = textureKey === DEFAULT_NPC_TEXTURE_KEY ? (NPC_FRAMES[npcId] ?? DEFAULT_NPC_FRAME) : 0;
     this.sprite = scene.add.sprite(x, y, textureKey, frame);
     if (showLabel) {

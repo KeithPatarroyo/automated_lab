@@ -25,36 +25,43 @@ SIT_START_ROW = 30  # LPC template: rows 30-33 = sit, up/left/down/right
 DIRECTION_ROW_OFFSET = {"up": 0, "left": 1, "down": 2, "right": 3}
 OUT_CELL = 32  # 2x downscale, matches player sprite scale
 
-# source filename (in lab_sketch/) -> (output filename, facing direction, pose)
+# source filename (in lab_sketch/) -> list of (output filename, facing direction, pose)
+# - usually one variant per source, but a source can produce more than one (e.g. a
+# lab-specific alternate facing for the same NPC).
 NPC_PORTRAITS = {
     # workshop_tech
-    "character-spritesheet_workshop_woman.png": ("workshop-woman.png", "left", "stand"),
+    "character-spritesheet_workshop_woman.png": [("workshop-woman.png", "left", "stand")],
     # lab_worker_1 "Lab Technician" / lab_worker_2 "Research Assistant"
-    "character-spritesheet_lab_npc_1.png": ("lab-npc-1.png", "up", "stand"),
-    "character-spritesheet_lab_npc_2.png": ("lab-npc-2.png", "up", "stand"),
+    "character-spritesheet_lab_npc_1.png": [("lab-npc-1.png", "up", "stand")],
+    "character-spritesheet_lab_npc_2.png": [("lab-npc-2.png", "up", "stand")],
     # workshop_worker_1 "Machinist" / workshop_worker_2 "Workshop Intern"
     # workshop_npc_1's source sheet is a different size (1152x3968, more equipment
     # columns/rows than the standard 832x3456 export) - the walk/sit blocks' position
     # is unaffected since the generator always emits universal animations first in a
     # fixed layout, extra content only appends columns/rows after it.
-    "character-spritesheet_workshop_npc_1.png": ("workshop-npc-1.png", "up", "stand"),
-    "character-spritesheet_workshop_npc_2.png": ("workshop-npc-2.png", "right", "stand"),
+    "character-spritesheet_workshop_npc_1.png": [("workshop-npc-1.png", "up", "stand")],
+    "character-spritesheet_workshop_npc_2.png": [("workshop-npc-2.png", "right", "stand")],
     # kitchen_cook - position not specified by Keith, left as a standing down-facing default
-    "character-spritesheet_kitchen_cook_npc.png": ("kitchen-cook.png", "down", "stand"),
+    "character-spritesheet_kitchen_cook_npc.png": [("kitchen-cook.png", "down", "stand")],
     # kitchen_worker_1 "Facilities Coordinator" / kitchen_worker_2 "Lab Safety Officer" /
     # kitchen_worker_3 "Operations Administrator" - all three seated
-    "character-spritesheet_npc_facilities_coordinator.png": ("kitchen-npc-facilities-coordinator.png", "up", "sit"),
-    "character-spritesheet_npc_lab_safety_officer.png": ("kitchen-npc-lab-safety-officer.png", "left", "sit"),
-    "character-spritesheet_npc_operations_administrator.png": (
-        "kitchen-npc-operations-administrator.png",
-        "right",
-        "sit",
-    ),
+    "character-spritesheet_npc_facilities_coordinator.png": [
+        ("kitchen-npc-facilities-coordinator.png", "up", "sit"),
+    ],
+    "character-spritesheet_npc_lab_safety_officer.png": [("kitchen-npc-lab-safety-officer.png", "left", "sit")],
+    "character-spritesheet_npc_operations_administrator.png": [
+        ("kitchen-npc-operations-administrator.png", "right", "sit"),
+    ],
     # office_manager "Office Manager" / office_worker_1 "Office Assistant" /
-    # office_worker_2 "Data Analyst"
-    "character-spritesheet_office_manager_npc.png": ("office-manager.png", "up", "stand"),
-    "character-spritesheet_office_npc_1.png": ("office-npc-1.png", "up", "stand"),
-    "character-spritesheet_office_npc_2.png": ("office-npc-2.png", "up", "stand"),
+    # office_worker_2 "Data Analyst" - office-manager-right.png is a lab_2-only
+    # alternate facing (see client/src/config/labs.ts's npcTextureOverrides), lab_1
+    # keeps the "up" default.
+    "character-spritesheet_office_manager_npc.png": [
+        ("office-manager.png", "up", "stand"),
+        ("office-manager-right.png", "right", "stand"),
+    ],
+    "character-spritesheet_office_npc_1.png": [("office-npc-1.png", "up", "stand")],
+    "character-spritesheet_office_npc_2.png": [("office-npc-2.png", "up", "stand")],
 }
 
 
@@ -68,11 +75,12 @@ def extract_frame(im: Image.Image, row: int, col: int, dest: Path) -> None:
 
 
 def main() -> None:
-    for source_name, (out_name, direction, pose) in NPC_PORTRAITS.items():
+    for source_name, variants in NPC_PORTRAITS.items():
         im = Image.open(LAB_SKETCH / source_name)
-        start_row = SIT_START_ROW if pose == "sit" else WALK_START_ROW
-        row = start_row + DIRECTION_ROW_OFFSET[direction]
-        extract_frame(im, row, 0, SPRITES_OUT / out_name)
+        for out_name, direction, pose in variants:
+            start_row = SIT_START_ROW if pose == "sit" else WALK_START_ROW
+            row = start_row + DIRECTION_ROW_OFFSET[direction]
+            extract_frame(im, row, 0, SPRITES_OUT / out_name)
 
 
 if __name__ == "__main__":

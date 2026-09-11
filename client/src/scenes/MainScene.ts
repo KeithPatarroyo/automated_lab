@@ -191,7 +191,8 @@ export class MainScene extends Phaser.Scene {
       const label = NPC_DISPLAY_NAMES[npc.npcId] ?? npc.npcId;
       const x = npc.x * map.tileWidth;
       const y = npc.y * map.tileHeight;
-      new Npc(this, npc.npcId, label, x, y, !BACKGROUND_NPC_ID_SET.has(npc.npcId));
+      const textureKeyOverride = this.lab.npcTextureOverrides?.[npc.npcId];
+      new Npc(this, npc.npcId, label, x, y, !BACKGROUND_NPC_ID_SET.has(npc.npcId), textureKeyOverride);
       this.interactTargets.push({ kind: "npc", id: npc.npcId, label, x, y });
       this.npcPixelPositions.push({ x, y });
     }
