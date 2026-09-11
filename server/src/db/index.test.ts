@@ -199,3 +199,27 @@ describe("human interaction log persistence", () => {
     db.close();
   });
 });
+
+describe("access log persistence", () => {
+  it("counts zero before anything is saved, then counts every entry regardless of account/visitor", () => {
+    const db = freshDb();
+    expect(db.countAccessLogEntries()).toBe(0);
+    db.saveAccessLogEntry({ id: "1", ts: 10, username: "Keith", accountKey: "keith" });
+    db.saveAccessLogEntry({ id: "2", ts: 20, username: "Bob", accountKey: null });
+    db.saveAccessLogEntry({ id: "3", ts: 30, username: "Bob", accountKey: null });
+    expect(db.countAccessLogEntries()).toBe(3);
+    db.close();
+  });
+});
+
+describe("agent conversation count", () => {
+  it("counts only agent_log entries with the conversation marker prefix", () => {
+    const db = freshDb();
+    expect(db.countAgentConversationLines()).toBe(0);
+    db.saveAgentLogEntry({ id: "1", ts: 10, npcId: "lab_scientist", text: "run_experiment - doing a thing" });
+    db.saveAgentLogEntry({ id: "2", ts: 20, npcId: "lab_scientist", text: "\u{1F4AC} hey, got a minute?" });
+    db.saveAgentLogEntry({ id: "3", ts: 30, npcId: "theoretical_scientist", text: "\u{1F4AC} sure, what's up?" });
+    expect(db.countAgentConversationLines()).toBe(2);
+    db.close();
+  });
+});

@@ -397,6 +397,24 @@ body.birdseye .lab-topbar-buttons {
 .lab-help-body p {
   margin: 0 0 10px;
 }
+.lab-stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #1f5c3a;
+}
+.lab-stat-row:last-child {
+  border-bottom: none;
+}
+.lab-stat-label {
+  color: #9ec9b0;
+}
+.lab-stat-value {
+  font-weight: 600;
+  text-align: right;
+}
 .lab-changelab-list {
   display: flex;
   flex-direction: column;

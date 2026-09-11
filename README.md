@@ -159,6 +159,28 @@ survives a restart regardless of who sent it. A newly-joined Visitor only sees c
 after they arrive (nothing retroactive); logging in as a named account instead loads the
 whole persisted history.
 
+An `access_log` table records every *successful* join/login (never a rejected one, e.g.
+capacity or a bad password) - one row per person per session, not deduplicated by name -
+backing the **Productivity** dashboard below.
+
+## Productivity dashboard
+
+The **Productivity** button (top-right, next to Bird's-eye/Change Lab/Help) opens a
+snapshot of this lab's stats, fetched fresh from the server each time it's opened
+(`productivity_open`/`productivity_data` in `shared/src/protocol.ts`):
+
+- **Agent-to-agent interactions** - a real count: every line of agent-to-agent dialogue
+  ever logged (`agents/runtime.ts`'s decision loop tags each side of an exchange with a
+  "💬 " marker in `agent_log`; `db.countAgentConversationLines()` counts those rows).
+- **Humans who've accessed this lab** - a real count of `access_log` rows (see
+  Persistence above).
+- **Productivity score** and **Efficiency score** - currently hardcoded strings
+  (`server/src/socket/handlers.ts`'s `PRODUCTIVITY_SCORE_LABEL`/`EFFICIENCY_SCORE_LABEL`),
+  not yet computed from anything real.
+
+Each lab's counts are independent, same as everything else in Persistence - they only
+reflect that lab's own database.
+
 ## Deployment
 
 Live at **https://automated-lab-client.vercel.app** (client) talking to

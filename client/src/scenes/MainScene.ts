@@ -26,6 +26,7 @@ import { InteractionPrompt } from "../ui/InteractionPrompt";
 import { HelpModal } from "../ui/HelpModal";
 import { ViewToggleButton } from "../ui/ViewToggleButton";
 import { ChangeLabModal } from "../ui/ChangeLabModal";
+import { ProductivityModal } from "../ui/ProductivityModal";
 import type { LabDef } from "../config/labs";
 
 const NPC_DISPLAY_NAMES: Record<string, string> = {
@@ -122,6 +123,7 @@ export class MainScene extends Phaser.Scene {
   private helpModal!: HelpModal;
   private viewToggle!: ViewToggleButton;
   private changeLabModal!: ChangeLabModal;
+  private productivityModal!: ProductivityModal;
   private inputLocked = false;
   private activeSessionId: string | null = null;
 
@@ -260,6 +262,7 @@ export class MainScene extends Phaser.Scene {
     this.interactionPrompt = new InteractionPrompt();
     this.viewToggle = new ViewToggleButton((birdsEye) => this.setBirdsEyeCamera(birdsEye));
     this.changeLabModal = new ChangeLabModal(this.lab.id);
+    this.productivityModal = new ProductivityModal(() => socketClient.socket?.emit("productivity_open"));
     this.helpModal = new HelpModal();
 
     this.registerSocketListeners();
@@ -296,6 +299,7 @@ export class MainScene extends Phaser.Scene {
 
     socket.on("chat_message", (msg) => this.chatPanel.addMessage(msg));
     socket.on("agent_log", (entry) => this.agentLogPanel.addEntry(entry));
+    socket.on("productivity_data", (stats) => this.productivityModal.showStats(stats));
 
     socket.on("npc_dialogue", ({ npcId, lines }) => {
       const label = NPC_DISPLAY_NAMES[npcId] ?? npcId;
@@ -360,7 +364,11 @@ export class MainScene extends Phaser.Scene {
 
   update(_time: number, deltaMs: number): void {
     const uiBlocksMovement =
-      this.inputLocked || this.chatPanel.isFocused || this.helpModal.isOpen || this.changeLabModal.isOpen;
+      this.inputLocked ||
+      this.chatPanel.isFocused ||
+      this.helpModal.isOpen ||
+      this.changeLabModal.isOpen ||
+      this.productivityModal.isOpen;
 
     let dx: -1 | 0 | 1 = 0;
     let dy: -1 | 0 | 1 = 0;

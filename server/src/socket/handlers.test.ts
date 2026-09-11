@@ -489,3 +489,50 @@ describe("visitor departure announcement", () => {
     expect(sawAnnaAnnouncement).toBe(false);
   });
 });
+
+describe("productivity dashboard", () => {
+  it("counts a successful join and a successful login as an access, but not a rejected attempt", async () => {
+    const before = db.countAccessLogEntries();
+
+    const visitor = await connectClient();
+    activeClients.push(visitor);
+    await new Promise<void>((resolve) => {
+      visitor.once("join_ack", () => resolve());
+      visitor.emit("join", { username: "AccessCheck", gender: "male" });
+    });
+    expect(db.countAccessLogEntries()).toBe(before + 1);
+
+    const rejected = await connectClient();
+    activeClients.push(rejected);
+    await new Promise<void>((resolve) => {
+      rejected.once("join_error", () => resolve());
+      rejected.emit("join", { username: "Keith", gender: "male" }); // reserved, no password
+    });
+    expect(db.countAccessLogEntries()).toBe(before + 1); // unchanged - still rejected
+
+    const acct = await connectClient();
+    activeClients.push(acct);
+    await login(acct, "Keith", "test-keith-pw");
+    expect(db.countAccessLogEntries()).toBe(before + 2);
+  });
+
+  it("returns agent interaction / access counts plus the hardcoded score labels", async () => {
+    db.saveAgentLogEntry({ id: "conv-1", ts: Date.now(), npcId: "lab_scientist", text: "\u{1F4AC} hi there" });
+    const expectedAgentCount = db.countAgentConversationLines();
+    const expectedAccessCount = db.countAccessLogEntries();
+
+    const client = await connectClient();
+    activeClients.push(client);
+    await login(client, "Anna", "test-anna-pw"); // itself adds one more access entry
+
+    const stats = await new Promise<any>((resolve) => {
+      client.once("productivity_data", resolve);
+      client.emit("productivity_open");
+    });
+
+    expect(stats.agentInteractionCount).toBe(expectedAgentCount);
+    expect(stats.humanAccessCount).toBe(expectedAccessCount + 1);
+    expect(stats.productivityScoreLabel).toMatch(/productive/i);
+    expect(stats.efficiencyScoreLabel).toMatch(/budget/i);
+  });
+});

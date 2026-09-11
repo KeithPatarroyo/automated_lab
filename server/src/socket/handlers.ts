@@ -18,6 +18,12 @@ type IoSocket = Socket<ClientToServerEvents, ServerToClientEvents>;
 
 const INTERACT_RANGE_PX = INTERACT_RANGE_TILES * TILE_WIDTH;
 
+// Not yet backed by a real computation - see productivity_open below. Revisit once
+// there's an actual definition of "productive"/"efficient" for this task worth
+// computing from the experiment log.
+const PRODUCTIVITY_SCORE_LABEL = "3% more productive than last week";
+const EFFICIENCY_SCORE_LABEL = "Energy limits within budget";
+
 interface ComputerSession {
   socketId: string;
   computerId: string;
@@ -52,6 +58,7 @@ export function registerSocketHandlers(io: IoServer, socket: IoSocket): void {
     const cleanGender = gender === "female" ? "female" : "male";
     const { x, y } = randomSpawn();
     const player = addPlayer(socket.id, clean, x, y, cleanGender);
+    db.saveAccessLogEntry({ id: nanoid(), ts: Date.now(), username: clean, accountKey: null });
 
     socket.emit("join_ack", {
       playerId: socket.id,
@@ -84,6 +91,7 @@ export function registerSocketHandlers(io: IoServer, socket: IoSocket): void {
     const snapshot = loadHumanSpawn(account.key);
     const spawn = snapshot ?? randomSpawn();
     const player = addPlayer(socket.id, account.displayName, spawn.x, spawn.y, account.gender, account.key, snapshot?.dir);
+    db.saveAccessLogEntry({ id: nanoid(), ts: Date.now(), username: account.displayName, accountKey: account.key });
 
     socket.emit("join_ack", {
       playerId: socket.id,
@@ -96,6 +104,15 @@ export function registerSocketHandlers(io: IoServer, socket: IoSocket): void {
       agentLogTail: agentLogTail(50),
     });
     socket.broadcast.emit("player_joined", { player: publicPlayerState(player) });
+  });
+
+  socket.on("productivity_open", () => {
+    socket.emit("productivity_data", {
+      agentInteractionCount: db.countAgentConversationLines(),
+      humanAccessCount: db.countAccessLogEntries(),
+      productivityScoreLabel: PRODUCTIVITY_SCORE_LABEL,
+      efficiencyScoreLabel: EFFICIENCY_SCORE_LABEL,
+    });
   });
 
   socket.on("move", ({ seq, dx, dy }) => {

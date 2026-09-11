@@ -97,6 +97,17 @@ CREATE TABLE IF NOT EXISTS human_interaction_log (
   text TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_human_interaction_log_account_ts ON human_interaction_log(account_key, ts);
+
+-- One row per successful join/login (never a rejected attempt) - backs the
+-- productivity dashboard's "humans who've accessed this lab" count. account_key is
+-- null for an anonymous Visitor.
+CREATE TABLE IF NOT EXISTS access_log (
+  id TEXT PRIMARY KEY,
+  ts INTEGER NOT NULL,
+  username TEXT NOT NULL,
+  account_key TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_access_log_ts ON access_log(ts);
 `;
 
 export interface AgentSnapshot {
@@ -124,6 +135,13 @@ export interface HumanInteractionEntry {
   targetId: string;
   role: "user" | "assistant";
   text: string;
+}
+
+export interface AccessLogEntry {
+  id: string;
+  ts: number;
+  username: string;
+  accountKey: string | null;
 }
 
 export interface Db {
@@ -160,6 +178,15 @@ export interface Db {
 
   saveHumanInteractionEntry(entry: HumanInteractionEntry): void;
   loadRecentHumanInteractionLog(accountKey: string, limit: number): HumanInteractionEntry[];
+
+  saveAccessLogEntry(entry: AccessLogEntry): void;
+  countAccessLogEntries(): number;
+
+  /** Number of agent-to-agent conversation lines ever logged - agents/runtime.ts's
+   * decisionTick logs each side of an exchange with a "💬 " prefix (two rows per
+   * exchange), the same marker replayEngine.ts's parseKind checks for. Backs the
+   * productivity dashboard's "agent-to-agent interactions" count. */
+  countAgentConversationLines(): number;
 
   close(): void;
 }
@@ -245,6 +272,13 @@ export function openDb(dbPath: string = DEFAULT_DB_PATH): Db {
     `SELECT id, ts, account_key as accountKey, kind, target_id as targetId, role, text
      FROM human_interaction_log WHERE account_key = ? ORDER BY ts DESC LIMIT ?`,
   );
+
+  const insertAccessLog = raw.prepare(
+    "INSERT INTO access_log (id, ts, username, account_key) VALUES (@id, @ts, @username, @accountKey)",
+  );
+  const selectAccessLogCount = raw.prepare("SELECT COUNT(*) as count FROM access_log");
+  const selectAgentConversationCount = raw.prepare("SELECT COUNT(*) as count FROM agent_log WHERE text LIKE ?");
+  const AGENT_CONVERSATION_MARKER = "\u{1F4AC}%"; // 💬 - see countAgentConversationLines's docstring
 
   return {
     saveMemoryEntry(entry) {
@@ -343,6 +377,16 @@ export function openDb(dbPath: string = DEFAULT_DB_PATH): Db {
     loadRecentHumanInteractionLog(accountKey, limit) {
       const rows = selectRecentHumanInteraction.all(accountKey, limit) as HumanInteractionEntry[];
       return rows.reverse();
+    },
+
+    saveAccessLogEntry(entry) {
+      insertAccessLog.run(entry);
+    },
+    countAccessLogEntries() {
+      return (selectAccessLogCount.get() as { count: number }).count;
+    },
+    countAgentConversationLines() {
+      return (selectAgentConversationCount.get(AGENT_CONVERSATION_MARKER) as { count: number }).count;
     },
 
     close() {

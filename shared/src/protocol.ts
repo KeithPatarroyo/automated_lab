@@ -134,6 +134,17 @@ export type TerminalVisualization =
       points: TerminalCalibrationPoint[];
     };
 
+/** This lab's productivity dashboard - two counts derived from real recorded data
+ * (agent-to-agent chat lines, successful human joins/logins), two labels currently
+ * hardcoded server-side rather than computed (see server/src/socket/handlers.ts's
+ * productivity_open handler). */
+export interface ProductivityStats {
+  agentInteractionCount: number;
+  humanAccessCount: number;
+  productivityScoreLabel: string;
+  efficiencyScoreLabel: string;
+}
+
 // Client -> Server events
 export interface ClientToServerEvents {
   join: (payload: { username: string; gender: Gender }) => void;
@@ -147,6 +158,7 @@ export interface ClientToServerEvents {
   npc_chat_open: (payload: { npcId: string }) => void;
   npc_chat_message: (payload: { sessionId: string; text: string }) => void;
   npc_chat_close: (payload: { sessionId: string }) => void;
+  productivity_open: () => void;
 }
 
 // Server -> Client events
@@ -173,6 +185,7 @@ export interface ServerToClientEvents {
   npc_chat_response: (payload: { sessionId: string; text: string }) => void;
   npc_chat_error: (payload: { sessionId: string; message: string }) => void;
   agent_log: (payload: AgentLogEntry) => void;
+  productivity_data: (payload: ProductivityStats) => void;
 }
 
 export const TICK_RATE_HZ = 20;
