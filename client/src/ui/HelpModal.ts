@@ -1,4 +1,4 @@
-import { el, uiRoot } from "./root";
+import { el, topBarButtons, uiRoot } from "./root";
 
 const HELP_HTML = `
   <h2>Controls</h2>
@@ -41,11 +41,11 @@ export class HelpModal {
   private node: HTMLElement;
 
   constructor() {
-    const button = el("button", "lab-help-button");
+    const button = el("button", "lab-topbar-button");
     button.type = "button";
     button.textContent = "? Help";
     button.addEventListener("click", () => this.open());
-    uiRoot().appendChild(button);
+    topBarButtons().appendChild(button);
 
     this.node = el("div", "lab-ui lab-help");
     this.node.style.display = "none";

@@ -24,6 +24,7 @@ import { DialogueBox } from "../ui/DialogueBox";
 import { ComputerModal } from "../ui/ComputerModal";
 import { InteractionPrompt } from "../ui/InteractionPrompt";
 import { HelpModal } from "../ui/HelpModal";
+import { ViewToggleButton } from "../ui/ViewToggleButton";
 
 const NPC_DISPLAY_NAMES: Record<string, string> = {
   workshop_tech: "Workshop Tech",
@@ -116,6 +117,7 @@ export class MainScene extends Phaser.Scene {
   private computerModal!: ComputerModal;
   private interactionPrompt!: InteractionPrompt;
   private helpModal!: HelpModal;
+  private viewToggle!: ViewToggleButton;
   private inputLocked = false;
   private activeSessionId: string | null = null;
 
@@ -250,6 +252,7 @@ export class MainScene extends Phaser.Scene {
     this.dialogueBox = new DialogueBox();
     this.computerModal = new ComputerModal();
     this.interactionPrompt = new InteractionPrompt();
+    this.viewToggle = new ViewToggleButton((birdsEye) => this.setBirdsEyeCamera(birdsEye));
     this.helpModal = new HelpModal();
 
     this.registerSocketListeners();
@@ -403,6 +406,22 @@ export class MainScene extends Phaser.Scene {
     for (const agent of this.agentNpcs.values()) agent.update();
 
     this.updateInteraction(uiBlocksMovement, deltaMs);
+  }
+
+  /** Toggled by ViewToggleButton - only the camera changes (zoom + follow-vs-centered),
+   * unlike the `?birdseye=1` boot-time screenshot mode, which also hides the player's
+   * own sprite/nametag and the chat/agent-log panels. Movement stays live either way. */
+  private setBirdsEyeCamera(enabled: boolean): void {
+    const mapWidthPx = this.mapWidthTiles * this.tileWidth;
+    const mapHeightPx = this.mapHeightTiles * this.tileHeight;
+    if (enabled) {
+      this.cameras.main.stopFollow();
+      this.cameras.main.setZoom(Math.min(this.scale.width / mapWidthPx, this.scale.height / mapHeightPx));
+      this.cameras.main.centerOn(mapWidthPx / 2, mapHeightPx / 2);
+    } else {
+      this.cameras.main.setZoom(2);
+      this.cameras.main.startFollow(this.localPlayer.sprite, true, 0.15, 0.15);
+    }
   }
 
   private isWallBlocked(tileX: number, tileY: number): boolean {

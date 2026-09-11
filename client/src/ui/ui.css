@@ -325,12 +325,16 @@ body.birdseye .lab-agent-log {
   outline: none;
 }
 
-/* Help button + modal - same terminal look as .lab-computer (header/close-button
-   styles are shared with it), static content instead of a chat log. */
-.lab-help-button {
+/* Shared top-right button row (Help, the bird's-eye view toggle, ...). */
+.lab-topbar-buttons {
   position: absolute;
   top: 12px;
   right: 12px;
+  display: flex;
+  gap: 8px;
+  z-index: 20;
+}
+.lab-topbar-button {
   padding: 6px 12px;
   border-radius: 4px;
   border: 1px solid #3ddc84;
@@ -338,11 +342,13 @@ body.birdseye .lab-agent-log {
   color: #3ddc84;
   font-size: 12px;
   cursor: pointer;
-  z-index: 20;
 }
-.lab-help-button:hover {
+.lab-topbar-button:hover {
   background: rgba(61, 220, 132, 0.15);
 }
+
+/* Help modal - same terminal look as .lab-computer (header/close-button styles are
+   shared with it), static content instead of a chat log. */
 .lab-help {
   inset: 0;
   display: flex;
