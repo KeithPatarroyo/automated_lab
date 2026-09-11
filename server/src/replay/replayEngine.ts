@@ -54,6 +54,11 @@ interface Segment {
   x: number;
   y: number;
   dir: Direction;
+  /** True only for the synthetic "no recorded rows" filler segment bakeAgent adds when
+   * an agent has zero rows in the chosen window - it's real for position lookups
+   * (frameAt) but must never surface as a "due" activity-feed line, unlike every other
+   * segment here which came from an actual recorded decision. */
+  synthetic?: boolean;
 }
 
 export interface ReplayFrame {
@@ -164,6 +169,24 @@ function bakeAgent(
     segments.push({ npcId, simStart: segStart, simEnd: clock, activity, logText: row.text, x: state.x, y: state.y, dir: state.dir });
   }
 
+  // No recorded rows for this agent in the chosen window (e.g. a freshly-wiped
+  // database with no session baked yet) - park it at its actual persona home position
+  // instead of leaving byAgent[npcId] empty, which ReplayPlayer.framesAt would
+  // otherwise render as (0, 0) - the map's corner, not any real location.
+  if (segments.length === 0) {
+    segments.push({
+      npcId,
+      simStart: 0,
+      simEnd: HOLD_DURATION_MS,
+      activity: "idle",
+      logText: "(no recorded activity yet)",
+      x: state.x,
+      y: state.y,
+      dir: state.dir,
+      synthetic: true,
+    });
+  }
+
   return segments;
 }
 
@@ -198,10 +221,12 @@ export function bakeReplay(
       isTileBlocked,
     );
   }
-  const timeline = Object.values(byAgent)
-    .flat()
-    .sort((a, b) => a.simStart - b.simStart);
-  const totalDurationMs = Math.max(1, ...timeline.map((s) => s.simEnd));
+  const allSegments = Object.values(byAgent).flat();
+  // Synthetic "no recorded rows" filler segments are real for position lookups
+  // (byAgent, used by frameAt) but must never surface as a due activity-feed line -
+  // nothing was actually decided/logged for them to replay.
+  const timeline = allSegments.filter((s) => !s.synthetic).sort((a, b) => a.simStart - b.simStart);
+  const totalDurationMs = Math.max(1, ...allSegments.map((s) => s.simEnd));
 
   return {
     byAgent,

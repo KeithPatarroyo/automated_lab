@@ -105,6 +105,21 @@ describe("bakeReplay", () => {
     expect(baked.byAgent.theoretical_scientist).toHaveLength(1);
     expect(baked.byAgent.theoretical_scientist[0].activity).toBe("conversing");
   });
+
+  it("parks an agent with no recorded rows at its real home position, not (0, 0)", () => {
+    // Only theoretical_scientist has any rows in this window - lab_scientist gets none.
+    const baked = bake([{ ts: 1000, npcId: "theoretical_scientist", text: "analyze - looking at the data" }]);
+    expect(baked.byAgent.lab_scientist).toHaveLength(1);
+    const fallback = baked.byAgent.lab_scientist[0];
+    expect(fallback.activity).toBe("idle");
+    // fakeMapMeta places lab_scientist's npc spawn at tile (20, 10) -> pixel (320, 160).
+    expect(fallback.x).toBe(20 * TILE);
+    expect(fallback.y).toBe(10 * TILE);
+    expect(fallback.path).toBeUndefined();
+    // The filler segment must never surface as a "due" activity-feed line - nothing was
+    // actually decided/logged for lab_scientist in this window to replay.
+    expect(baked.timeline.some((s) => s.npcId === "lab_scientist")).toBe(false);
+  });
 });
 
 describe("ReplayPlayer", () => {
