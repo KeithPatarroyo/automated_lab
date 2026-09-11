@@ -7,7 +7,7 @@ primary_region = "iad"
   PORT = "3002"
   SIMULATION_MODE = "live"
   MAP_FILE = "lab_2.json"
-  DB_FILE = "lab_2.sqlite"
+  DB_FILE = "lab_2_v2.sqlite"
 
 [http_service]
   internal_port = 3002
