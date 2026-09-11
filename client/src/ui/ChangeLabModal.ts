@@ -19,11 +19,16 @@ export class ChangeLabModal {
 
     this.node = el("div", "lab-ui lab-help");
     this.node.style.display = "none";
+    // Each option is a single clickable card - name above, a bird's-eye screenshot of
+    // that lab below, so picking a lab means clicking its picture rather than a plain
+    // text row (see config/labs.ts's previewImage / README's "Multiple labs" section
+    // for how to regenerate these).
     const rows = LABS.map((lab) => {
       const isCurrent = lab.id === currentLabId;
       return `
         <button type="button" class="lab-changelab-item" data-lab-id="${lab.id}" ${isCurrent ? "disabled" : ""}>
-          ${lab.displayName}${isCurrent ? " (current)" : ""}
+          <span class="lab-changelab-name">${lab.displayName}${isCurrent ? " (current)" : ""}</span>
+          <img class="lab-changelab-thumb" src="${lab.previewImage}" alt="${lab.displayName} preview" />
         </button>
       `;
     }).join("");
@@ -35,7 +40,8 @@ export class ChangeLabModal {
         </div>
         <div class="lab-help-body">
           <p>Each lab is a fully separate world - its own map, its own agents, its own
-          accounts and chat history. Picking one reloads the page there.</p>
+          accounts and chat history. Click a lab's picture to go there - it reloads the
+          page.</p>
           <div class="lab-changelab-list">${rows}</div>
         </div>
       </div>
