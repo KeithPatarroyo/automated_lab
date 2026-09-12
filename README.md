@@ -12,10 +12,28 @@ them or to the in-world computer terminals. Each screenshot above is one lab's w
 at once (`?birdseye=1`, see below) - Workshop top-left, Primary Lab top-right, Kitchen
 bottom-left, Office bottom-right in both - every character - the two agents, the three
 named flavor NPCs, and all 9 background workers - rendered with its own distinct sprite
-rather than a shared placeholder tile. See "Multiple labs (local)" below for what having
-two of these actually means.
+rather than a shared placeholder tile. See "Multiple labs" below for what having two of
+these actually means.
 
 See `lab_sketch/SKETCH.png` for the real floor-plan this loosely riffs on.
+
+## Contents
+
+- [Quick start](#quick-start)
+- [Two ways to run it: simulation vs. display-only](#two-ways-to-run-it-simulation-vs-display-only)
+- [The world & characters](#the-world--characters)
+- [The science task](#the-science-task)
+- [Login & human accounts](#login--human-accounts)
+- [Persistence](#persistence)
+- [Metrics dashboard](#metrics-dashboard)
+- [Deployment](#deployment)
+- [Multiple labs](#multiple-labs)
+- [Editing the map](#editing-the-map)
+  - [Adding a new tileset](#adding-a-new-tileset)
+- [Movement & collision](#movement--collision)
+- [Mobile touch controls](#mobile-touch-controls)
+- [Tests](#tests)
+- [Art & asset credits](#art--asset-credits)
 
 ## Quick start
 
@@ -53,10 +71,13 @@ The two agents' behavior is controlled by `SIMULATION_MODE` in `server/.env`:
   `live` session; set `REPLAY_WINDOW_START` (ISO-8601) and `REPLAY_WINDOW_HOURS`
   together to pin it to a specific recorded window instead (see
   `server/.env.example`) - e.g. the live deployment currently replays a 3.5-hour
-  window from `2026-09-11T07:00:42.955Z`, which bakes down to about 18 minutes of
-  actual loop playback (each recorded decision holds for 10s - see
-  `HOLD_DURATION_MS` in `server/src/replay/replayEngine.ts` - rather than the ~2
-  real minutes it took live) before repeating.
+  window (Lab 1 from `2026-09-11T07:00:42.955Z`, Lab 2 from
+  `2026-09-12T07:00:53.656Z` - each lab's own `fly.*.toml`), which bakes down to
+  roughly 20 minutes of actual loop playback (each recorded decision holds for 10s -
+  see `HOLD_DURATION_MS` in `server/src/replay/replayEngine.ts` - rather than the ~2
+  real minutes it took live) before repeating. The **Metrics** dashboard's
+  Agent-to-agent interactions count resets every time a replay loop wraps back to the
+  start - see Metrics dashboard below.
 
 ## The world & characters
 
@@ -161,54 +182,80 @@ whole persisted history.
 
 An `access_log` table records every *successful* join/login (never a rejected one, e.g.
 capacity or a bad password) - one row per person per session, not deduplicated by name -
-backing the **Productivity** dashboard below.
+backing the **Metrics** dashboard below.
 
-## Productivity dashboard
+## Metrics dashboard
 
-The **Productivity** button (top-right, next to Bird's-eye/Change Lab/Help) opens a
+The **Metrics** button (top-right, next to Bird's-eye/Change Lab/Help) opens a
 snapshot of this lab's stats, fetched fresh from the server each time it's opened
 (`productivity_open`/`productivity_data` in `shared/src/protocol.ts`):
 
-- **Agent-to-agent interactions** - a real count: every line of agent-to-agent dialogue
-  ever logged (`agents/runtime.ts`'s decision loop tags each side of an exchange with a
-  "💬 " marker in `agent_log`; `db.countAgentConversationLines()` counts those rows).
-- **Humans who've accessed this lab** - a real count of `access_log` rows (see
-  Persistence above).
+- **Agent-to-agent interactions** - in `live` mode, a real cumulative count: every line
+  of agent-to-agent dialogue ever logged (`agents/runtime.ts`'s decision loop tags each
+  side of an exchange with a "💬 " marker in `agent_log`;
+  `db.countAgentConversationLines()` counts those rows). In `replay` mode there's no
+  "cumulative" to count - replay never writes to the database - so this is instead a
+  live counter of chat lines played back **since the current loop started**, which
+  resets to 0 the instant the loop wraps back to the beginning
+  (`getReplayConversationCount()` in `agents/runtime.ts`, driven by
+  `ReplayPlayer.tick()`'s `looped` flag).
+- **Human-agent interaction** - a real count of `access_log` rows (see Persistence
+  above).
 - **Productivity score** and **Efficiency score** - currently hardcoded strings
   (`server/src/socket/handlers.ts`'s `PRODUCTIVITY_SCORE_LABEL`/`EFFICIENCY_SCORE_LABEL`),
   not yet computed from anything real.
 
 Each lab's counts are independent, same as everything else in Persistence - they only
-reflect that lab's own database.
+reflect that lab's own database (and, in replay mode, that lab's own loop).
 
 ## Deployment
 
-Live at **https://automated-lab-client.vercel.app** (client) talking to
-**https://automated-lab.fly.dev** (server) - client and server deploy separately since
-the server needs a long-lived WebSocket process and a persistent disk (neither fits a
-serverless host), while the client is a static Vite build.
+Live at **https://automated-lab-client.vercel.app** (one client) talking to **two**
+independent Fly.io server apps, one per lab - **https://automated-lab.fly.dev** (Lab 1)
+and **https://automated-lab-2.fly.dev** (Lab 2). Client and servers deploy separately
+since each server needs a long-lived WebSocket process and a persistent disk (neither
+fits a serverless host), while the client is a static Vite build. See Multiple labs
+below for why each lab is a fully separate Fly app rather than one process serving both.
 
-- **Server (Fly.io):** `Dockerfile` runs `@lab/server` straight from TypeScript via
-  `tsx` (no build step - `shared` has no build script and is meant to be consumed as
-  source by both `tsx` and Vite). `fly.toml` mounts a 1GB volume at `server/data` for
-  `lab.sqlite`, so agent memory/experiment history, the two named accounts' own state,
-  and the public chat log (see Persistence above) all survive redeploys. Secrets
-  (`GEMINI_API_KEY`, `CLIENT_ORIGIN`, and the two account password env vars) live in
-  Fly secrets, not in git; non-secret config (`SIMULATION_MODE`, `REPLAY_WINDOW_START`,
-  `REPLAY_WINDOW_HOURS` - see "Two ways to run it" above) lives directly in `fly.toml`'s
-  `[env]` block instead, since there's nothing sensitive about them.
-  Redeploy with `flyctl deploy --app automated-lab` from the repo root.
+- **Servers (Fly.io), one app per lab:**
+  - `automated-lab` (Lab 1): volume `lab_data` mounted at `server/data`, running
+    `SIMULATION_MODE=replay` pinned to a 3.5h window from `2026-09-11T07:00:42.955Z`
+    (`fly.toml`'s `[env]` block). Redeploy: `flyctl deploy --app automated-lab` from
+    the repo root.
+  - `automated-lab-2` (Lab 2): its own volume `lab2_data`, `MAP_FILE=lab_2.json`,
+    `DB_FILE=lab_2_v2.sqlite`, also `SIMULATION_MODE=replay` pinned to its own 3.5h
+    window from `2026-09-12T07:00:53.656Z` (`fly.lab2.toml` - a second, separate
+    fly.toml since flyctl only reads one config per app by default). Redeploy:
+    `flyctl deploy --config fly.lab2.toml --app automated-lab-2` from the repo root.
+  - Both run the exact same unmodified `Dockerfile` (`@lab/server` straight from
+    TypeScript via `tsx` - no build step, since `shared` has no build script and is
+    meant to be consumed as source by both `tsx` and Vite), just parameterized
+    differently. Each app's volume means agent memory/experiment history, the two
+    named accounts' own state, and the public chat log (see Persistence above) all
+    survive a redeploy of that lab - and redeploying one lab's app never touches the
+    other's data.
+  - Secrets (`GEMINI_API_KEY`, `CLIENT_ORIGIN`, and the two account password env vars)
+    live in Fly secrets, not in git - **set independently per app**, since Fly secrets
+    can't be copied between apps or read back once set
+    (`flyctl secrets set KEY=value --app <app-name>`). Non-secret config
+    (`SIMULATION_MODE`, `MAP_FILE`, `DB_FILE`, `REPLAY_WINDOW_START`,
+    `REPLAY_WINDOW_HOURS` - see "Two ways to run it" and "Multiple labs" above) lives
+    directly in each app's `[env]` block instead, since there's nothing sensitive
+    about them.
 - **Client (Vercel):** project root directory is set to `client/` (via
   `vercel project update automated-lab-client --root-directory client`, not
   `vercel.json` - a bare `rootDirectory` key there fails schema validation), so `npm
   install` still runs at the repo root and resolves the `@lab/shared` workspace
-  correctly. `VITE_SERVER_URL` (production env var) points at the Fly server.
+  correctly. Two production env vars point it at both servers: `VITE_SERVER_URL`
+  (Lab 1, kept under its original name for backward compatibility) and
+  `VITE_LAB2_SERVER_URL` (Lab 2) - see `client/src/config/labs.ts`.
   Redeploy with `vercel --prod --yes` from the repo root.
-- Changing either URL means updating the other side: a new client URL needs
-  `flyctl secrets set CLIENT_ORIGIN=<url> --app automated-lab` (CORS), and a new server
-  URL needs the `VITE_SERVER_URL` env var updated in the Vercel project and redeployed.
+- Changing a server's URL means updating the other side: a new client URL needs
+  `flyctl secrets set CLIENT_ORIGIN=<url> --app <app-name>` (CORS) on **both** server
+  apps, and a new server URL needs the matching `VITE_SERVER_URL`/`VITE_LAB2_SERVER_URL`
+  env var updated in the Vercel project and redeployed.
 
-## Multiple labs (local)
+## Multiple labs
 
 A "lab" is a full map + database + agent simulation - not a room inside one server.
 Running more than one means running more than one **server process**, each an
@@ -217,7 +264,11 @@ unmodified copy of the same codebase pointed at its own map/database via env var
 existed). There's no single-process multi-tenancy here on purpose - `mapMeta.ts`,
 `db/singleton.ts`, `game/state.ts`'s player list, and `agents/runtime.ts`'s agent state
 are all plain module-level singletons, so a second lab is simplest as a second OS
-process rather than a rewrite of all four into instantiable classes.
+process rather than a rewrite of all four into instantiable classes. This is exactly
+how production runs too, just as two separate Fly apps instead of two local processes -
+see Deployment above.
+
+**Local:**
 
 ```bash
 npm run dev:labs   # lab 1 (existing map/db) in replay mode on :3001,
@@ -226,11 +277,16 @@ npm run dev:labs   # lab 1 (existing map/db) in replay mode on :3001,
 ```
 
 The client (`client/src/config/labs.ts`) knows about both by default for local dev
-(`http://localhost:3001`/`:3002`) with no env vars needed; a deployed build would set
-`VITE_LAB1_SERVER_URL`/`VITE_LAB2_SERVER_URL` instead (falling back to the existing
-`VITE_SERVER_URL` for lab 1, so today's deployed client needs no changes to keep being
-"lab 1" - which lab each of these deployed servers would live and how many Fly
-machines they'd need is genuinely undecided, not designed yet).
+(`http://localhost:3001`/`:3002`) with no env vars needed.
+
+**Production:** the client instead resolves each lab's `serverUrl` from
+`VITE_SERVER_URL` (Lab 1, the original single-lab env var - kept as-is so it never
+needed renaming) and `VITE_LAB2_SERVER_URL` (Lab 2), pointing at
+`automated-lab.fly.dev` and `automated-lab-2.fly.dev` respectively - two fully
+independent Fly apps, each with its own volume/database and its own secrets (see
+Deployment above). Adding a third lab means: a new Fly app + volume, a new
+`fly.<lab>.toml`, a new entry in `client/src/config/labs.ts` with a
+`VITE_LAB<N>_SERVER_URL` env var, and that var set in Vercel.
 
 The **Change Lab** button (top-right, next to Bird's-eye/Help) opens a picker; choosing
 a different lab does a full page reload to `?lab=<id>` rather than an in-place scene
@@ -304,6 +360,24 @@ outright if the destination overlaps a wall tile, rather than moving into it and
 separating back out (which is what Phaser's Arcade-physics colliders do by default).
 Keep it this way: if client and server ever run different collision logic again, they
 will eventually visually disagree near a wall boundary, however subtly.
+
+## Mobile touch controls
+
+`client/src/ui/TouchControls.ts` detects touch capability
+(`"ontouchstart" in window || navigator.maxTouchPoints > 0`) and, only on a touch
+device, renders a d-pad (four direction buttons plus a fifth "E"/interact button in
+the grid's empty center cell) into the black letterboxed strip Phaser's `Scale.FIT`
+leaves below the fixed 640x480 canvas on most phones - not floating on top of the game
+view. It exposes the same held-direction booleans (and an interact button that fires
+once per tap, like `Phaser.Input.Keyboard.JustDown`) that `MainScene` already reads off
+the keyboard every frame, so touch just combines into the existing movement/interact
+logic rather than needing its own path; on desktop it's a complete no-op. The chat and
+Agent Activity panels (normally anchored to the viewport's bottom edge, where the d-pad
+now lives) reposition above the reserved strip via a `--lab-touch-controls-height` CSS
+variable TouchControls publishes at runtime, and are both roughly half their desktop
+footprint on a touch device (`body.lab-touch-active` in `ui.css`) to leave more room on
+a small screen. This is demo-quality, not a full mobile redesign - good enough to hand
+someone a phone for a quick look, not tuned for every screen size/orientation.
 
 ## Tests
 
