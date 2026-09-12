@@ -5,9 +5,11 @@ primary_region = "iad"
 
 [env]
   PORT = "3002"
-  SIMULATION_MODE = "live"
+  SIMULATION_MODE = "replay"
   MAP_FILE = "lab_2.json"
   DB_FILE = "lab_2_v2.sqlite"
+  REPLAY_WINDOW_START = "2026-09-12T07:00:53.656Z"
+  REPLAY_WINDOW_HOURS = "3.5"
 
 [http_service]
   internal_port = 3002
