@@ -45,7 +45,7 @@ export class ProductivityModal {
     `;
     this.bodyEl.innerHTML =
       row("Agent-to-agent interactions", stats.agentInteractionCount) +
-      row("Humans who've accessed this lab", stats.humanAccessCount) +
+      row("Human-agent interaction", stats.humanAccessCount) +
       row("Productivity score", stats.productivityScoreLabel) +
       row("Efficiency score", stats.efficiencyScoreLabel);
     this.open();
