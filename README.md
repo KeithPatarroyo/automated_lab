@@ -211,7 +211,8 @@ reflect that lab's own database (and, in replay mode, that lab's own loop).
 
 ## Deployment
 
-Live at **https://automated-lab-client.vercel.app** (one client) talking to **two**
+Live at **https://automated-lab.vercel.app** (one client, aliased from the underlying
+`automated-lab-client.vercel.app` project domain) talking to **two**
 independent Fly.io server apps, one per lab - **https://automated-lab.fly.dev** (Lab 1)
 and **https://automated-lab-2.fly.dev** (Lab 2). Client and servers deploy separately
 since each server needs a long-lived WebSocket process and a persistent disk (neither
