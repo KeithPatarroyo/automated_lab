@@ -151,4 +151,13 @@ describe("ReplayPlayer", () => {
     const afterWrap = player.tick(baked.totalDurationMs + 1000); // wrap around the loop
     expect(afterWrap.dueLogLines.map((s) => s.logText)).toEqual(["run_experiment - only one"]);
   });
+
+  it("reports looped only on the tick that actually crosses a loop boundary", () => {
+    const baked = bake([{ ts: 1000, npcId: "lab_scientist", text: "run_experiment - only one" }]);
+    const player = new ReplayPlayer(baked);
+
+    expect(player.tick(1).looped).toBe(false);
+    expect(player.tick(baked.totalDurationMs - 2).looped).toBe(false); // totalElapsedMs now 1 short of a full loop
+    expect(player.tick(2).looped).toBe(true); // crosses the boundary
+  });
 });

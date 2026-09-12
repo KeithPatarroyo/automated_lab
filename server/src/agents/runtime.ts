@@ -65,6 +65,17 @@ export const memoryStore = new PersistedMemoryStore(db, Object.keys(AGENT_PERSON
 // from every tick instead of running the live decision loop. See replay/replayEngine.ts.
 let replayPlayer: ReplayPlayer | null = null;
 
+// Live "this loop" count of agent-to-agent chat lines that have played back so far -
+// resets to 0 every time the replay wraps back to its start (see stepReplay), unlike
+// db.countAgentConversationLines() which is a real cumulative count and has no notion
+// of "this loop" since replay never writes to the database. Only meaningful/read in
+// replay mode - see socket/handlers.ts's productivity_open.
+let replayConversationCount = 0;
+
+export function getReplayConversationCount(): number {
+  return replayConversationCount;
+}
+
 /** Parses REPLAY_WINDOW_START/REPLAY_WINDOW_HOURS into a bakeReplay window, or
  * undefined if either is unset/invalid - falls back to "the latest recorded session"
  * in that case (see replayEngine.ts's bakeReplay). */
@@ -368,7 +379,8 @@ function emitReplayLogLine(npcId: string, text: string): void {
 
 function stepReplay(dt: number): void {
   if (!replayPlayer) return;
-  const { frames, dueLogLines } = replayPlayer.tick(dt * 1000);
+  const { frames, dueLogLines, looped } = replayPlayer.tick(dt * 1000);
+  if (looped) replayConversationCount = 0;
   for (const [npcId, frame] of Object.entries(frames)) {
     const state = agentStates[npcId];
     if (!state) continue;
@@ -377,7 +389,10 @@ function stepReplay(dt: number): void {
     state.dir = frame.dir;
     state.activity = frame.activity;
   }
-  for (const seg of dueLogLines) emitReplayLogLine(seg.npcId, seg.logText);
+  for (const seg of dueLogLines) {
+    if (seg.activity === "conversing") replayConversationCount++;
+    emitReplayLogLine(seg.npcId, seg.logText);
+  }
 }
 
 /** Called every physics tick from game/loop.ts, same as player movement. */

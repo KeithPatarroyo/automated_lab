@@ -288,11 +288,12 @@ export class ReplayPlayer {
    * this jumps straight to the correct current position rather than replaying every
    * skipped loop's log lines - a long-suspended host process should catch up to "now",
    * not dump a backlog. */
-  tick(elapsedMs: number): { frames: Record<string, ReplayFrame>; dueLogLines: Segment[] } {
+  tick(elapsedMs: number): { frames: Record<string, ReplayFrame>; dueLogLines: Segment[]; looped: boolean } {
     this.totalElapsedMs += elapsedMs;
     const loopMs = this.totalElapsedMs % this.baked.totalDurationMs;
     const currentLoop = Math.floor(this.totalElapsedMs / this.baked.totalDurationMs);
-    if (currentLoop > this.loopCount) {
+    const looped = currentLoop > this.loopCount;
+    if (looped) {
       this.loopCount = currentLoop;
       this.nextTimelineIndex = 0;
     }
@@ -303,6 +304,6 @@ export class ReplayPlayer {
       this.nextTimelineIndex++;
     }
 
-    return { frames: this.framesAt(loopMs), dueLogLines };
+    return { frames: this.framesAt(loopMs), dueLogLines, looped };
   }
 }

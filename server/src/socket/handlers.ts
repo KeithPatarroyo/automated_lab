@@ -6,7 +6,8 @@ import { mapMeta, randomSpawn, TILE_WIDTH, TILE_HEIGHT } from "../data/mapMeta.j
 import { getNpcLines } from "../data/npcDialogue.js";
 import { addPlayer, allPlayerStates, MAX_CONNECTED_HUMANS, players, publicPlayerState, removePlayer, setInput } from "../game/state.js";
 import { askFast, GeminiClientError, type TerminalTurn } from "../ai/geminiClient.js";
-import { agentLogTail, agentNpcStates, agentStates, memoryStore } from "../agents/runtime.js";
+import { agentLogTail, agentNpcStates, agentStates, getReplayConversationCount, memoryStore } from "../agents/runtime.js";
+import { SIMULATION_MODE } from "../env.js";
 import { getPersona } from "../agents/personas.js";
 import { buildTerminalSystemPrompt, buildTerminalVisualization } from "../science/terminalVisualization.js";
 import { authenticate, claimSession, isReservedUsername, releaseSession } from "../accounts/humanAccounts.js";
@@ -108,7 +109,11 @@ export function registerSocketHandlers(io: IoServer, socket: IoSocket): void {
 
   socket.on("productivity_open", () => {
     socket.emit("productivity_data", {
-      agentInteractionCount: db.countAgentConversationLines(),
+      // Replay has no notion of "cumulative" - it loops the same recording, so this is
+      // a live count of chat lines played back since the current loop started (resets
+      // each time it wraps), not db.countAgentConversationLines()'s all-time total.
+      agentInteractionCount:
+        SIMULATION_MODE === "replay" ? getReplayConversationCount() : db.countAgentConversationLines(),
       humanAccessCount: db.countAccessLogEntries(),
       productivityScoreLabel: PRODUCTIVITY_SCORE_LABEL,
       efficiencyScoreLabel: EFFICIENCY_SCORE_LABEL,
