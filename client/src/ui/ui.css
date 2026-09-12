@@ -275,6 +275,16 @@ body.lab-touch-active .lab-chat {
 body.lab-touch-active .lab-chat-log {
   height: 70px;
 }
+/* Agent activity log matches the public chat box's footprint exactly (130x119, the
+   chat box's actual rendered size with the above overrides) instead of the desktop
+   layout's left:290px/right:12px span, which left almost nothing on a phone-width
+   screen. Sits immediately to the right of the chat box. */
+body.lab-touch-active .lab-agent-log {
+  left: 150px;
+  right: auto;
+  width: 130px;
+  height: 119px;
+}
 
 /* Agent activity log (bottom of screen, separate from player chat which sits
    bottom-left) - read-only feed of background agent decisions/movement. */
