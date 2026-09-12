@@ -476,6 +476,10 @@ export class MainScene extends Phaser.Scene {
   }
 
   private updateInteraction(uiBlocksMovement: boolean, _deltaMs: number): void {
+    // Always drained once per frame, even when there's nothing to act on below - a tap
+    // that lands with no target nearby (or while a modal is up) should be discarded,
+    // not held onto and fired later against whatever happens to be nearest next.
+    const touchInteractPressed = this.touchControls.consumeInteractPress();
     if (uiBlocksMovement) {
       this.interactionPrompt.hide();
       return;
@@ -507,7 +511,7 @@ export class MainScene extends Phaser.Scene {
     if (nearest) {
       const verb = nearest.kind === "computer" ? `use ${nearest.label}` : `talk to ${nearest.label}`;
       this.interactionPrompt.show(`Press E to ${verb}`);
-      if (Phaser.Input.Keyboard.JustDown(this.keyInteract)) {
+      if (Phaser.Input.Keyboard.JustDown(this.keyInteract) || touchInteractPressed) {
         if (nearest.kind === "npc") {
           socketClient.socket?.emit("npc_interact", { npcId: nearest.id });
         } else if (nearest.kind === "agent_npc") {

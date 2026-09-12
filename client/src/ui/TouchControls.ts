@@ -17,11 +17,14 @@ const ARROWS: Record<"up" | "down" | "left" | "right", string> = {
  * Only renders on a touch-capable device; on desktop it's a no-op with everything false. */
 export class TouchControls {
   private held = { up: false, down: false, left: false, right: false };
+  private interactRequested = false;
   private node: HTMLElement | null = null;
 
   constructor() {
     const isTouchDevice = "ontouchstart" in window || navigator.maxTouchPoints > 0;
     if (!isTouchDevice) return;
+
+    document.body.classList.add("lab-touch-active");
 
     this.node = el("div", "lab-touch-controls");
     const pad = el("div", "lab-touch-pad");
@@ -43,6 +46,19 @@ export class TouchControls {
       button.addEventListener("pointercancel", release);
       pad.appendChild(button);
     });
+
+    // Sits in the grid's empty center cell (surrounded by the four direction
+    // buttons) - a single tap, not held-and-repeated like the arrows, matching
+    // Phaser.Input.Keyboard.JustDown's fire-once-per-press semantics for "E".
+    const interactButton = el("button", "lab-touch-btn lab-touch-btn-interact");
+    interactButton.type = "button";
+    interactButton.textContent = "E";
+    interactButton.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      this.interactRequested = true;
+    });
+    pad.appendChild(interactButton);
+
     this.node.appendChild(pad);
     uiRoot().appendChild(this.node);
 
@@ -61,6 +77,14 @@ export class TouchControls {
   }
   get right(): boolean {
     return this.held.right;
+  }
+
+  /** Fire-once read of the interact button, same shape as Phaser's JustDown - a tap
+   * reports true exactly once, regardless of how long update() keeps polling. */
+  consumeInteractPress(): boolean {
+    if (!this.interactRequested) return false;
+    this.interactRequested = false;
+    return true;
   }
 
   /** Pins the control strip's top edge to the canvas's actual rendered bottom edge

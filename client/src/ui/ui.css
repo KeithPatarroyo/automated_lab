@@ -39,25 +39,38 @@ body.birdseye .lab-touch-controls {
 }
 .lab-touch-pad {
   display: grid;
-  grid-template-columns: repeat(3, minmax(56px, 22vmin));
-  grid-template-rows: repeat(3, minmax(56px, 22vmin));
-  gap: 3vmin;
+  grid-template-columns: repeat(3, minmax(28px, 11vmin));
+  grid-template-rows: repeat(3, minmax(28px, 11vmin));
+  gap: 1.5vmin;
 }
 .lab-touch-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 10px;
+  border-radius: 8px;
   border: 2px solid #3ddc84;
   background: rgba(6, 18, 10, 0.85);
   color: #3ddc84;
-  font-size: 7vmin;
+  font-size: 3.5vmin;
   cursor: pointer;
   user-select: none;
   touch-action: none;
 }
 .lab-touch-btn:active {
   background: rgba(61, 220, 132, 0.35);
+}
+/* Interact ("E") sits in the grid's empty center cell, surrounded by the four
+   direction buttons - amber instead of green so it reads as a different kind of
+   action (a tap, not a held direction) at a glance. */
+.lab-touch-btn-interact {
+  grid-column: 2;
+  grid-row: 2;
+  border-color: #e0c34c;
+  color: #e0c34c;
+  font-weight: 700;
+}
+.lab-touch-btn-interact:active {
+  background: rgba(224, 195, 76, 0.35);
 }
 .lab-touch-btn-up {
   grid-column: 2;
@@ -252,6 +265,15 @@ body.birdseye .lab-touch-controls {
   padding: 8px 10px;
   font-size: 12px;
   outline: none;
+}
+
+/* Touch devices (see TouchControls.ts's body.lab-touch-active): the chat box at half
+   its desktop footprint, freeing up room on a small screen. */
+body.lab-touch-active .lab-chat {
+  width: 130px;
+}
+body.lab-touch-active .lab-chat-log {
+  height: 70px;
 }
 
 /* Agent activity log (bottom of screen, separate from player chat which sits
