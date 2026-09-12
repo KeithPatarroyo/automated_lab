@@ -2,9 +2,10 @@
 
 ![Bird's-eye view of Lab 1 (left) and Lab 2 (right)](docs/lab-birdseye.png)
 
-A browser-based, top-down 2D "virtual lab" - Pokémon-style movement and dialogue -
-loosely inspired by the *Generative Agents* paper (`Paper/2304.03442v2.pdf`) and Andrew
-White's drugcrow.ai concept. Two autonomous LLM-agent scientists (`lab_scientist`,
+A browser-based 2D "virtual lab" as a testbed for measuring human-machine teaming
+configurations with LLM-backed agent NPCs doing autonomous science, inspired by the
+*Generative Agents* paper (`Paper/2304.03442v2.pdf`) and Andrew White's drugcrow.ai
+concept. Two autonomous LLM-agent scientists (`lab_scientist`,
 `theoretical_scientist`) run a real closed-loop science task around the clock - walking
 between rooms, running experiments, analyzing data, and occasionally chatting with each
 other - while any number of human visitors can log in, walk around, watch, and talk to
