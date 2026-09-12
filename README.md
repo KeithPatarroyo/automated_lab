@@ -3,7 +3,7 @@
 ![Bird's-eye view of Lab 1 (left) and Lab 2 (right)](docs/lab-birdseye.png)
 
 A 2D virtual lab for measuring human-machine teaming configurations with LLM-backed
-agents doing autonomous science - a browser-based, Pokémon-style top-down world,
+agents doing autonomous science - a browser-based, role-playing videogame-style top-down world,
 inspired by the *Generative Agents* paper (`Paper/2304.03442v2.pdf`) and Andrew
 White's drugcrow.ai concept. Two autonomous LLM-agent scientists (`lab_scientist`,
 `theoretical_scientist`) run a real closed-loop science task around the clock - walking
