@@ -27,6 +27,7 @@ import { HelpModal } from "../ui/HelpModal";
 import { ViewToggleButton } from "../ui/ViewToggleButton";
 import { ChangeLabModal } from "../ui/ChangeLabModal";
 import { ProductivityModal } from "../ui/ProductivityModal";
+import { TouchControls } from "../ui/TouchControls";
 import type { LabDef } from "../config/labs";
 
 const NPC_DISPLAY_NAMES: Record<string, string> = {
@@ -124,6 +125,7 @@ export class MainScene extends Phaser.Scene {
   private viewToggle!: ViewToggleButton;
   private changeLabModal!: ChangeLabModal;
   private productivityModal!: ProductivityModal;
+  private touchControls!: TouchControls;
   private inputLocked = false;
   private activeSessionId: string | null = null;
 
@@ -251,6 +253,7 @@ export class MainScene extends Phaser.Scene {
     this.keyS = this.input.keyboard!.addKey("S");
     this.keyD = this.input.keyboard!.addKey("D");
     this.keyInteract = this.input.keyboard!.addKey("E");
+    this.touchControls = new TouchControls();
 
     this.chatPanel = new ChatPanel((text) => socketClient.socket?.emit("chat_message", { text }));
     for (const msg of this.joinAck.chatLogTail) this.chatPanel.addMessage(msg);
@@ -373,10 +376,10 @@ export class MainScene extends Phaser.Scene {
     let dx: -1 | 0 | 1 = 0;
     let dy: -1 | 0 | 1 = 0;
     if (!uiBlocksMovement) {
-      if (this.cursors.left.isDown || this.keyA.isDown) dx = -1;
-      else if (this.cursors.right.isDown || this.keyD.isDown) dx = 1;
-      if (this.cursors.up.isDown || this.keyW.isDown) dy = -1;
-      else if (this.cursors.down.isDown || this.keyS.isDown) dy = 1;
+      if (this.cursors.left.isDown || this.keyA.isDown || this.touchControls.left) dx = -1;
+      else if (this.cursors.right.isDown || this.keyD.isDown || this.touchControls.right) dx = 1;
+      if (this.cursors.up.isDown || this.keyW.isDown || this.touchControls.up) dy = -1;
+      else if (this.cursors.down.isDown || this.keyS.isDown || this.touchControls.down) dy = 1;
     }
 
     if (dx !== this.lastSentInput.dx || dy !== this.lastSentInput.dy) {
