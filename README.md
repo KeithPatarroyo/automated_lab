@@ -278,8 +278,7 @@ below for why each lab is a fully separate Fly app rather than one process servi
 
 ## Multiple labs
 
-The point of having more than one lab isn't just a tech demo of running two at once -
-it's a testbed for comparing different human-agent environment configurations against
+The point of having more than one lab is a testbed for comparing different human-agent environment configurations against
 each other (different map layouts, agent placements, or house rules) and seeing
 whether metrics like the Metrics dashboard's productivity, efficiency, and cooperation
 (agent-to-agent interactions) numbers actually come out higher in one configuration
