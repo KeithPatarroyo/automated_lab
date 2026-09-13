@@ -13,9 +13,9 @@ them or to the in-world computer terminals. Each screenshot above is one lab's w
 at once (`?birdseye=1`, see below) - Workshop, Primary Lab, Kitchen, and Office in both,
 every character - the two agents, the three named flavor NPCs, and all 9 background
 workers - rendered with its own distinct sprite rather than a shared placeholder tile.
-Lab 1 and Lab 2 are  different maps: Lab 2's
+Lab 1 and Lab 2 are different maps: Lab 2's
 room shapes, door placement, and inter-room connectivity are all different from Lab 1's
-(see lab layouts image), - see "Multiple labs"
+(see lab layouts image) - see "Multiple labs"
 below for what having two of these actually means.
 
 See `lab_sketch/SKETCH.png` for the real floor-plan this loosely riffs on.
