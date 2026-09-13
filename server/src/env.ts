@@ -28,6 +28,13 @@ export const REPLAY_WINDOW_HOURS = Number(process.env.REPLAY_WINDOW_HOURS ?? "")
 export const MAP_FILE = process.env.MAP_FILE ?? "lab.json";
 export const DB_FILE = process.env.DB_FILE ?? "lab.sqlite";
 
+/** Two of the Metrics dashboard's fixed labels (see socket/handlers.ts's
+ * productivity_open) - overridable per lab so each lab can show a different fixed
+ * snapshot, same pattern as MAP_FILE/DB_FILE above. Defaults match Lab 1's original
+ * values, so an existing deployment/local .env needs no changes. */
+export const PRODUCTIVITY_SCORE_LABEL = process.env.PRODUCTIVITY_SCORE_LABEL ?? "3% more productive than last week";
+export const SIMULATION_MATCH_LABEL = process.env.SIMULATION_MATCH_LABEL ?? "Matching to 85%";
+
 if (!GEMINI_API_KEY) {
   console.warn(
     "[env] GEMINI_API_KEY is not set - the computer terminal will respond with an error until it is configured in server/.env",

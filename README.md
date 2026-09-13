@@ -204,14 +204,19 @@ snapshot of this lab's stats, fetched fresh from the server each time it's opene
   above).
 - **Productivity score** and **Efficiency score** - qualitative snapshots that aim to
   capture how the lab_scientist (experimentalist) and theoretical_scientist agents'
-  actual results are trending
-  (`server/src/socket/handlers.ts`'s `PRODUCTIVITY_SCORE_LABEL`/`EFFICIENCY_SCORE_LABEL`).
-- **Simulation vs experiment** - also fixed for now
-  (`SIMULATION_MATCH_LABEL` in `server/src/socket/handlers.ts`). A placeholder for a
-  future metric: once this task has a real physical experiment to compare against
-  (rather than the synthetic instrument model in `server/src/science/`), this would
-  become an actual agreement score between the simulation's results and real
-  measurements, instead of a fixed "Matching to 85%".
+  actual results are trending (`server/src/env.ts`'s `PRODUCTIVITY_SCORE_LABEL`,
+  `server/src/socket/handlers.ts`'s `EFFICIENCY_SCORE_LABEL`).
+- **Simulation vs experiment** - also fixed for now (`SIMULATION_MATCH_LABEL` in
+  `server/src/env.ts`). A placeholder for a future metric: once this task has a real
+  physical experiment to compare against (rather than the synthetic instrument model
+  in `server/src/science/`), this would become an actual agreement score between the
+  simulation's results and real measurements, instead of a fixed percentage.
+
+`PRODUCTIVITY_SCORE_LABEL`/`SIMULATION_MATCH_LABEL` are overridable per lab (see
+`server/.env.example`), so different labs can show different fixed snapshots - e.g. the
+live deployment currently shows Lab 1 at "3% more productive than last week"/"Matching
+to 85%" and Lab 2 at "5% more productive than last week"/"Matching to 72%".
+`EFFICIENCY_SCORE_LABEL` isn't (yet) - same fixed value for every lab.
 
 Each lab's counts are independent, same as everything else in Persistence - they only
 reflect that lab's own database (and, in replay mode, that lab's own loop).

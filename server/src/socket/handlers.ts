@@ -7,7 +7,7 @@ import { getNpcLines } from "../data/npcDialogue.js";
 import { addPlayer, allPlayerStates, MAX_CONNECTED_HUMANS, players, publicPlayerState, removePlayer, setInput } from "../game/state.js";
 import { askFast, GeminiClientError, type TerminalTurn } from "../ai/geminiClient.js";
 import { agentLogTail, agentNpcStates, agentStates, getReplayConversationCount, memoryStore } from "../agents/runtime.js";
-import { SIMULATION_MODE } from "../env.js";
+import { PRODUCTIVITY_SCORE_LABEL, SIMULATION_MATCH_LABEL, SIMULATION_MODE } from "../env.js";
 import { getPersona } from "../agents/personas.js";
 import { buildTerminalSystemPrompt, buildTerminalVisualization } from "../science/terminalVisualization.js";
 import { authenticate, claimSession, isReservedUsername, releaseSession } from "../accounts/humanAccounts.js";
@@ -21,13 +21,10 @@ const INTERACT_RANGE_PX = INTERACT_RANGE_TILES * TILE_WIDTH;
 
 // Not yet backed by a real computation - see productivity_open below. Revisit once
 // there's an actual definition of "productive"/"efficient" for this task worth
-// computing from the experiment log.
-const PRODUCTIVITY_SCORE_LABEL = "3% more productive than last week";
+// computing from the experiment log. PRODUCTIVITY_SCORE_LABEL/SIMULATION_MATCH_LABEL
+// are overridable per lab via env.ts, so different labs can show different fixed
+// snapshots; EFFICIENCY_SCORE_LABEL isn't (yet) - same for every lab.
 const EFFICIENCY_SCORE_LABEL = "Energy limits within budget";
-// A placeholder for comparing this simulation's synthetic results against real lab
-// data, once there's a real experiment to compare against - see README's Metrics
-// dashboard section.
-const SIMULATION_MATCH_LABEL = "Matching to 85%";
 
 interface ComputerSession {
   socketId: string;
