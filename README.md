@@ -16,9 +16,9 @@ workers - rendered with its own distinct sprite rather than a shared placeholder
 Lab 1 and Lab 2 are genuinely different maps, not the same layout re-skinned: Lab 2's
 room shapes, door placement, and inter-room connectivity are all different from Lab 1's
 (most visible comparing the two halves of the image above - Lab 2's rooms lean into a
-central hub rather than Lab 1's four-corner layout), which is exactly the kind of
-variation the two-lab setup exists to compare - see "Multiple labs" below for what
-having two of these actually means.
+central hub rather than Lab 1's four-corner layout - see lab layouts image), which is
+exactly the kind of variation the two-lab setup exists to compare - see "Multiple labs"
+below for what having two of these actually means.
 
 See `lab_sketch/SKETCH.png` for the real floor-plan this loosely riffs on.
 
