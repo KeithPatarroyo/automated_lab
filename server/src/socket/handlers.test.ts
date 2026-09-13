@@ -405,7 +405,7 @@ describe("persistence scoped to logged-in accounts", () => {
     expect(annaAck.chatLogTail.some((m: any) => m.text === "a message before the visitor arrives")).toBe(true);
   });
 
-  it("persists terminal and NPC-chat interactions only for a logged-in account", async () => {
+  it("persists terminal/NPC-chat interactions for both a logged-in account and a Visitor, under separate keys", async () => {
     const acctClient = await connectClient();
     const visitorClient = await connectClient();
     activeClients.push(acctClient, visitorClient);
@@ -451,6 +451,13 @@ describe("persistence scoped to logged-in accounts", () => {
     const keithLogAfter = db.loadRecentHumanInteractionLog("keith", 50);
     expect(keithLogAfter.some((e) => e.text === "visitor question")).toBe(false);
     expect(keithLogAfter.some((e) => e.text === "a reply to a visitor")).toBe(false);
+
+    // The Visitor's turn is still persisted (Metrics dashboard's "Human-Agent
+    // interaction" count includes Visitors) - just under their own transient
+    // username, kept separate from any named account's own history.
+    const carolLog = db.loadRecentHumanInteractionLog("Carol", 50);
+    expect(carolLog.some((e) => e.role === "user" && e.text === "visitor question")).toBe(true);
+    expect(carolLog.some((e) => e.role === "assistant" && e.text === "a reply to a visitor")).toBe(true);
   });
 });
 

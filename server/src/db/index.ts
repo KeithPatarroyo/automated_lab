@@ -90,6 +90,10 @@ CREATE INDEX IF NOT EXISTS idx_public_chat_log_ts ON public_chat_log(ts);
 CREATE TABLE IF NOT EXISTS human_interaction_log (
   id TEXT PRIMARY KEY,
   ts INTEGER NOT NULL,
+  -- The real account key for a named account, or a Visitor's (transient) username -
+  -- see socket/handlers.ts's logKey. Never a bare identity lookup key for Visitors,
+  -- just a label; reserved-name checks at login guarantee it can't collide with a
+  -- real account key.
   account_key TEXT NOT NULL,
   kind TEXT NOT NULL,
   target_id TEXT NOT NULL,
@@ -178,9 +182,9 @@ export interface Db {
 
   saveHumanInteractionEntry(entry: HumanInteractionEntry): void;
   loadRecentHumanInteractionLog(accountKey: string, limit: number): HumanInteractionEntry[];
-  /** Every row ever saved to human_interaction_log, across every account - one row per
-   * message (both the human's and the reply) in a terminal or direct agent chat. Backs
-   * the Metrics dashboard's "Human-Agent interaction" count. */
+  /** Every row ever saved to human_interaction_log, from named accounts and Visitors
+   * alike - one row per message (both the human's and the reply) in a terminal or
+   * direct agent chat. Backs the Metrics dashboard's "Human-Agent interaction" count. */
   countHumanInteractionLogEntries(): number;
 
   saveAccessLogEntry(entry: AccessLogEntry): void;
@@ -198,11 +202,12 @@ export interface Db {
 /**
  * Opens (creating if needed) the durable store behind the agent simulation - memory,
  * experiment log, the human-visible activity feed, each agent's last known
- * position/streak - plus, for the two named human accounts only (see
- * server/src/accounts/humanAccounts.ts), their own last known position, their own
- * public chat messages, and their own NPC-agent/terminal chat history. An anonymous
- * Visitor is still just an observer: nothing about their session is persisted, and
- * their public chat is shown live but never written here.
+ * position/streak. Human accounts (see server/src/accounts/humanAccounts.ts) get
+ * their own last known position persisted here too, but only the two named accounts -
+ * an anonymous Visitor's position is never saved. Both a named account's and a
+ * Visitor's own NPC-agent/terminal chat turns land in human_interaction_log (a
+ * Visitor's under their transient username instead of a stable account key - see
+ * socket/handlers.ts), and both their public chat messages are saved the same way.
  *
  * Pass ":memory:" for an ephemeral in-process database (used by tests); omit `dbPath`
  * to use the real on-disk file under server/data/ (gitignored - this is generated data,

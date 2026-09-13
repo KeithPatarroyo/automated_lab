@@ -179,18 +179,22 @@ export function registerSocketHandlers(io: IoServer, socket: IoSocket): void {
     if (!session || session.socketId !== socket.id) return;
     const trimmed = text.trim().slice(0, 2000);
     if (!trimmed) return;
-    const accountKey = players.get(socket.id)?.accountKey;
+    // Named accounts log under their real key; a Visitor has no persistent identity,
+    // so their (transient) username stands in - reserved-name checks at login mean a
+    // Visitor's username can never collide with "keith"/"anna", so this never confuses
+    // loadRecentHumanInteractionLog's real per-account lookups.
+    const logKey = players.get(socket.id)?.accountKey ?? players.get(socket.id)?.username;
 
     const perspective = session.computerId === "lab_terminal" ? "experimental" : "theoretical";
     const groundingAgentId = session.computerId === "lab_terminal" ? "lab_scientist" : "theoretical_scientist";
     const visualization = buildTerminalVisualization(perspective);
 
     session.history.push({ role: "user", text: trimmed });
-    if (accountKey) {
+    if (logKey) {
       db.saveHumanInteractionEntry({
         id: nanoid(),
         ts: Date.now(),
-        accountKey,
+        accountKey: logKey,
         kind: "terminal",
         targetId: session.computerId,
         role: "user",
@@ -201,11 +205,11 @@ export function registerSocketHandlers(io: IoServer, socket: IoSocket): void {
       const systemPrompt = buildTerminalSystemPrompt(session.computerId, memoryStore.recent(groundingAgentId, 6), visualization);
       const reply = await askFast(session.history, systemPrompt);
       session.history.push({ role: "assistant", text: reply });
-      if (accountKey) {
+      if (logKey) {
         db.saveHumanInteractionEntry({
           id: nanoid(),
           ts: Date.now(),
-          accountKey,
+          accountKey: logKey,
           kind: "terminal",
           targetId: session.computerId,
           role: "assistant",
@@ -243,14 +247,14 @@ export function registerSocketHandlers(io: IoServer, socket: IoSocket): void {
     if (!trimmed) return;
     const persona = getPersona(session.npcId);
     if (!persona) return;
-    const accountKey = players.get(socket.id)?.accountKey;
+    const logKey = players.get(socket.id)?.accountKey ?? players.get(socket.id)?.username;
 
     session.history.push({ role: "user", text: trimmed });
-    if (accountKey) {
+    if (logKey) {
       db.saveHumanInteractionEntry({
         id: nanoid(),
         ts: Date.now(),
-        accountKey,
+        accountKey: logKey,
         kind: "npc_chat",
         targetId: session.npcId,
         role: "user",
@@ -269,11 +273,11 @@ export function registerSocketHandlers(io: IoServer, socket: IoSocket): void {
       const reply = await askFast(session.history, `${persona.systemPrompt}\n\n${grounding}`);
       session.history.push({ role: "assistant", text: reply });
       memoryStore.record(session.npcId, "chat", `A visitor asked: "${trimmed}" - I said: "${reply}"`);
-      if (accountKey) {
+      if (logKey) {
         db.saveHumanInteractionEntry({
           id: nanoid(),
           ts: Date.now(),
-          accountKey,
+          accountKey: logKey,
           kind: "npc_chat",
           targetId: session.npcId,
           role: "assistant",

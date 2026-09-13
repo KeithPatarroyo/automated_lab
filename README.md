@@ -168,11 +168,13 @@ on the login screen rather than silently degrading performance for everyone alre
 log/target, the activity feed, and each agent's position - all of it survives a server
 restart, and is what `replay` mode bakes its loop from.
 
-The two named accounts (see Login & human accounts above) are also persisted, in two
-more tables: `human_snapshot` (last known x/y/facing, one row per account, overwritten -
-not a movement history) and `human_interaction_log` (their own turns in an NPC-agent
-chat or on a computer terminal - a Visitor's equivalent sessions are never written
-here; backs the **Metrics** dashboard's "Human-Agent interaction" count below).
+The two named accounts (see Login & human accounts above) get their own table too:
+`human_snapshot` (last known x/y/facing, one row per account, overwritten - not a
+movement history) - a Visitor's position is never saved. `human_interaction_log` is
+different: it records **everyone's** own turns in an NPC-agent chat or on a computer
+terminal, a named account or a Visitor alike (a Visitor's rows keyed by their transient
+username instead of a stable account key) - backs the **Metrics** dashboard's
+"Human-Agent interaction" count below.
 
 The **public chat log** (`public_chat_log` table) is different from both: it records
 everything said by anyone - a named account or a Visitor (labeled `"<name> (visitor)"`),
@@ -201,18 +203,19 @@ snapshot of this lab's stats, fetched fresh from the server each time it's opene
   (`getReplayConversationCount()` in `agents/runtime.ts`, driven by
   `ReplayPlayer.tick()`'s `looped` flag).
 - **Human-Agent interaction** - a real count of `human_interaction_log` rows
-  (`db.countHumanInteractionLogEntries()`) - every message (both sides) of a logged-in
-  account's own conversations with a computer terminal or directly with one of the two
-  agents (see Persistence above). Visitors' NPC/terminal chats aren't persisted there,
-  so they don't count.
+  (`db.countHumanInteractionLogEntries()`) - every message (both sides) of anyone's
+  conversation with a computer terminal or directly with one of the two agents, a
+  named account or a Visitor alike (see Persistence above). A Visitor's turns are
+  logged under their own transient username rather than a stable account key, so
+  `loadRecentHumanInteractionLog`'s per-account lookups still only ever return a real
+  named account's own history.
 - **Number of visitors** - a real count of `access_log` rows (`db.countAccessLogEntries()`)
   - every *successful* join or login, Visitors and named accounts alike (see
   Persistence above); despite the name, this also counts named-account logins, not
   only anonymous Visitors.
 - **Productivity score** and **Efficiency score** - qualitative snapshots that aim to
   capture how the lab_scientist (experimentalist) and theoretical_scientist agents'
-  actual results are trending (`server/src/env.ts`'s `PRODUCTIVITY_SCORE_LABEL`,
-  `server/src/socket/handlers.ts`'s `EFFICIENCY_SCORE_LABEL`).
+  actual results are trending.
 - **Simulation vs experiment** - also fixed for now (`SIMULATION_MATCH_LABEL` in
   `server/src/env.ts`). A placeholder for a future metric: once this task has a real
   physical experiment to compare against (rather than the synthetic instrument model
@@ -224,8 +227,7 @@ reflect that lab's own database (and, in replay mode, that lab's own loop).
 
 ## Deployment
 
-Live at **https://automated-lab.vercel.app** (one client, aliased from the underlying
-`automated-lab-client.vercel.app` project domain) talking to **two**
+Live at **https://automated-lab.vercel.app** (one client) talking to **two**
 independent Fly.io server apps, one per lab - **https://automated-lab.fly.dev** (Lab 1)
 and **https://automated-lab-2.fly.dev** (Lab 2). Client and servers deploy separately
 since each server needs a long-lived WebSocket process and a persistent disk (neither
@@ -258,7 +260,7 @@ below for why each lab is a fully separate Fly app rather than one process servi
     directly in each app's `[env]` block instead, since there's nothing sensitive
     about them.
 - **Client (Vercel):** project root directory is set to `client/` (via
-  `vercel project update automated-lab-client --root-directory client`, not
+  `vercel project update automated-lab --root-directory client`, not
   `vercel.json` - a bare `rootDirectory` key there fails schema validation), so `npm
   install` still runs at the repo root and resolves the `@lab/shared` workspace
   correctly. Two production env vars point it at both servers: `VITE_SERVER_URL`
