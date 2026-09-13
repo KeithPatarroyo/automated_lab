@@ -3,6 +3,8 @@ import { el, uiRoot } from "./root";
 
 type Mode = "select" | "visitor" | "account";
 
+const REPO_URL = "https://github.com/KeithPatarroyo/automated_lab";
+
 /** Entry screen: choose "Visitor" (ephemeral username+gender, never persisted) or
  * "Log In" (Keith/Anna only - the two persisted accounts, see server/src/accounts/
  * humanAccounts.ts). Both paths can be rejected by the server (a reserved username, or
@@ -35,6 +37,7 @@ export function showLoginForm(
           <button type="button" data-mode="login">Log In</button>
           <button type="button" data-mode="visitor">Visitor</button>
         </div>
+        <a class="lab-login-repo-link" href="${REPO_URL}" target="_blank" rel="noopener noreferrer">View source on GitHub</a>
       </div>
     `;
     container.querySelector('[data-mode="login"]')!.addEventListener("click", () => {

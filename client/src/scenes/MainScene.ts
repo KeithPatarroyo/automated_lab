@@ -24,6 +24,7 @@ import { DialogueBox } from "../ui/DialogueBox";
 import { ComputerModal } from "../ui/ComputerModal";
 import { InteractionPrompt } from "../ui/InteractionPrompt";
 import { HelpModal } from "../ui/HelpModal";
+import { AboutModal } from "../ui/AboutModal";
 import { ViewToggleButton } from "../ui/ViewToggleButton";
 import { ChangeLabModal } from "../ui/ChangeLabModal";
 import { ProductivityModal } from "../ui/ProductivityModal";
@@ -122,6 +123,7 @@ export class MainScene extends Phaser.Scene {
   private computerModal!: ComputerModal;
   private interactionPrompt!: InteractionPrompt;
   private helpModal!: HelpModal;
+  private aboutModal!: AboutModal;
   private viewToggle!: ViewToggleButton;
   private changeLabModal!: ChangeLabModal;
   private productivityModal!: ProductivityModal;
@@ -267,6 +269,7 @@ export class MainScene extends Phaser.Scene {
     this.changeLabModal = new ChangeLabModal(this.lab.id);
     this.productivityModal = new ProductivityModal(() => socketClient.socket?.emit("productivity_open"));
     this.helpModal = new HelpModal();
+    this.aboutModal = new AboutModal();
 
     this.registerSocketListeners();
   }
@@ -370,6 +373,7 @@ export class MainScene extends Phaser.Scene {
       this.inputLocked ||
       this.chatPanel.isFocused ||
       this.helpModal.isOpen ||
+      this.aboutModal.isOpen ||
       this.changeLabModal.isOpen ||
       this.productivityModal.isOpen;
 
