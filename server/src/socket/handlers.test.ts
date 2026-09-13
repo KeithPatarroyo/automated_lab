@@ -534,5 +534,6 @@ describe("productivity dashboard", () => {
     expect(stats.humanAccessCount).toBe(expectedAccessCount + 1);
     expect(stats.productivityScoreLabel).toMatch(/productive/i);
     expect(stats.efficiencyScoreLabel).toMatch(/budget/i);
+    expect(stats.simulationMatchLabel).toMatch(/matching/i);
   });
 });

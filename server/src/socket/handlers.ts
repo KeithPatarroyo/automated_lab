@@ -24,6 +24,10 @@ const INTERACT_RANGE_PX = INTERACT_RANGE_TILES * TILE_WIDTH;
 // computing from the experiment log.
 const PRODUCTIVITY_SCORE_LABEL = "3% more productive than last week";
 const EFFICIENCY_SCORE_LABEL = "Energy limits within budget";
+// A placeholder for comparing this simulation's synthetic results against real lab
+// data, once there's a real experiment to compare against - see README's Metrics
+// dashboard section.
+const SIMULATION_MATCH_LABEL = "Matching to 85%";
 
 interface ComputerSession {
   socketId: string;
@@ -117,6 +121,7 @@ export function registerSocketHandlers(io: IoServer, socket: IoSocket): void {
       humanAccessCount: db.countAccessLogEntries(),
       productivityScoreLabel: PRODUCTIVITY_SCORE_LABEL,
       efficiencyScoreLabel: EFFICIENCY_SCORE_LABEL,
+      simulationMatchLabel: SIMULATION_MATCH_LABEL,
     });
   });
 

@@ -143,6 +143,7 @@ export interface ProductivityStats {
   humanAccessCount: number;
   productivityScoreLabel: string;
   efficiencyScoreLabel: string;
+  simulationMatchLabel: string;
 }
 
 // Client -> Server events
