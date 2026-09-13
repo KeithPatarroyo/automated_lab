@@ -198,6 +198,41 @@ describe("human interaction log persistence", () => {
     expect(db.loadRecentHumanInteractionLog("keith", 1).map((e) => e.text)).toEqual(["hello"]);
     db.close();
   });
+
+  it("counts exchanges, not raw rows - each exchange is 2 rows (message + reply)", () => {
+    const db = freshDb();
+    expect(db.countHumanInteractionLogEntries()).toBe(0);
+    db.saveHumanInteractionEntry({
+      id: "1",
+      ts: 10,
+      accountKey: "keith",
+      kind: "terminal",
+      targetId: "lab_terminal",
+      role: "user",
+      text: "hi",
+    });
+    db.saveHumanInteractionEntry({
+      id: "2",
+      ts: 20,
+      accountKey: "keith",
+      kind: "terminal",
+      targetId: "lab_terminal",
+      role: "assistant",
+      text: "hello",
+    });
+    expect(db.countHumanInteractionLogEntries()).toBe(1); // 2 rows, 1 exchange
+    db.saveHumanInteractionEntry({
+      id: "3",
+      ts: 30,
+      accountKey: "Carol", // a Visitor's transient username, same as a real account key column-wise
+      kind: "npc_chat",
+      targetId: "lab_scientist",
+      role: "user",
+      text: "hey",
+    });
+    expect(db.countHumanInteractionLogEntries()).toBe(1); // an odd row out doesn't round up
+    db.close();
+  });
 });
 
 describe("access log persistence", () => {

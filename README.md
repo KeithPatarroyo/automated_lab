@@ -202,10 +202,11 @@ snapshot of this lab's stats, fetched fresh from the server each time it's opene
   resets to 0 the instant the loop wraps back to the beginning
   (`getReplayConversationCount()` in `agents/runtime.ts`, driven by
   `ReplayPlayer.tick()`'s `looped` flag).
-- **Human-Agent interaction** - a real count of `human_interaction_log` rows
-  (`db.countHumanInteractionLogEntries()`) - every message (both sides) of anyone's
-  conversation with a computer terminal or directly with one of the two agents, a
-  named account or a Visitor alike (see Persistence above). A Visitor's turns are
+- **Human-Agent interaction** - a real count of exchanges in `human_interaction_log`
+  (`db.countHumanInteractionLogEntries()`) - anyone's conversation with a computer
+  terminal or directly with one of the two agents, a named account or a Visitor alike
+  (see Persistence above). Each exchange is saved as 2 rows (the human's message, then
+  the reply), so this is row count / 2, not a raw row count. A Visitor's turns are
   logged under their own transient username rather than a stable account key, so
   `loadRecentHumanInteractionLog`'s per-account lookups still only ever return a real
   named account's own history.

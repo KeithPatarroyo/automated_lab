@@ -182,9 +182,11 @@ export interface Db {
 
   saveHumanInteractionEntry(entry: HumanInteractionEntry): void;
   loadRecentHumanInteractionLog(accountKey: string, limit: number): HumanInteractionEntry[];
-  /** Every row ever saved to human_interaction_log, from named accounts and Visitors
-   * alike - one row per message (both the human's and the reply) in a terminal or
-   * direct agent chat. Backs the Metrics dashboard's "Human-Agent interaction" count. */
+  /** Number of human<->agent exchanges in human_interaction_log, from named accounts
+   * and Visitors alike. Each exchange is saved as 2 rows (the human's message, then
+   * the reply), so this is row count / 2, not a raw row count - see
+   * saveHumanInteractionEntry's call sites in socket/handlers.ts. Backs the Metrics
+   * dashboard's "Human-Agent interaction" count. */
   countHumanInteractionLogEntries(): number;
 
   saveAccessLogEntry(entry: AccessLogEntry): void;
@@ -389,7 +391,8 @@ export function openDb(dbPath: string = DEFAULT_DB_PATH): Db {
       return rows.reverse();
     },
     countHumanInteractionLogEntries() {
-      return (selectHumanInteractionCount.get() as { count: number }).count;
+      const rowCount = (selectHumanInteractionCount.get() as { count: number }).count;
+      return Math.floor(rowCount / 2);
     },
 
     saveAccessLogEntry(entry) {
