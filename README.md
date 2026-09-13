@@ -220,7 +220,8 @@ snapshot of this lab's stats, fetched fresh from the server each time it's opene
   only anonymous Visitors.
 - **Productivity score** and **Efficiency score** - qualitative snapshots that aim to
   capture how the lab_scientist (experimentalist) and theoretical_scientist agents'
-  actual results are trending.
+  actual results are trending, given by `server/src/env.ts` and
+  `server/src/socket/handlers.ts` respectively.
 - **Simulation vs experiment** - also fixed for now (`SIMULATION_MATCH_LABEL` in
   `server/src/env.ts`). A placeholder for a future metric: once this task has a real
   physical experiment to compare against (rather than the synthetic instrument model
