@@ -202,9 +202,10 @@ snapshot of this lab's stats, fetched fresh from the server each time it's opene
   `ReplayPlayer.tick()`'s `looped` flag).
 - **Human-agent interaction** - a real count of `access_log` rows (see Persistence
   above).
-- **Productivity score** and **Efficiency score** - currently hardcoded strings
-  (`server/src/socket/handlers.ts`'s `PRODUCTIVITY_SCORE_LABEL`/`EFFICIENCY_SCORE_LABEL`),
-  not yet computed from anything real.
+- **Productivity score** and **Efficiency score** - qualitative snapshots that aim to
+  capture how the lab_scientist (experimentalist) and theoretical_scientist agents'
+  actual results are trending
+  (`server/src/socket/handlers.ts`'s `PRODUCTIVITY_SCORE_LABEL`/`EFFICIENCY_SCORE_LABEL`).
 
 Each lab's counts are independent, same as everything else in Persistence - they only
 reflect that lab's own database (and, in replay mode, that lab's own loop).
