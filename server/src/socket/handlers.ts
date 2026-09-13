@@ -115,7 +115,8 @@ export function registerSocketHandlers(io: IoServer, socket: IoSocket): void {
       // each time it wraps), not db.countAgentConversationLines()'s all-time total.
       agentInteractionCount:
         SIMULATION_MODE === "replay" ? getReplayConversationCount() : db.countAgentConversationLines(),
-      humanAccessCount: db.countAccessLogEntries(),
+      humanInteractionCount: db.countHumanInteractionLogEntries(),
+      visitorCount: db.countAccessLogEntries(),
       productivityScoreLabel: PRODUCTIVITY_SCORE_LABEL,
       efficiencyScoreLabel: EFFICIENCY_SCORE_LABEL,
       simulationMatchLabel: SIMULATION_MATCH_LABEL,

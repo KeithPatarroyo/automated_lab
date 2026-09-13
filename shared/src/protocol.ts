@@ -140,7 +140,8 @@ export type TerminalVisualization =
  * productivity_open handler). */
 export interface ProductivityStats {
   agentInteractionCount: number;
-  humanAccessCount: number;
+  humanInteractionCount: number;
+  visitorCount: number;
   productivityScoreLabel: string;
   efficiencyScoreLabel: string;
   simulationMatchLabel: string;

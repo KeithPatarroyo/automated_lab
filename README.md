@@ -172,7 +172,7 @@ The two named accounts (see Login & human accounts above) are also persisted, in
 more tables: `human_snapshot` (last known x/y/facing, one row per account, overwritten -
 not a movement history) and `human_interaction_log` (their own turns in an NPC-agent
 chat or on a computer terminal - a Visitor's equivalent sessions are never written
-here).
+here; backs the **Metrics** dashboard's "Human-Agent interaction" count below).
 
 The **public chat log** (`public_chat_log` table) is different from both: it records
 everything said by anyone - a named account or a Visitor (labeled `"<name> (visitor)"`),
@@ -191,7 +191,7 @@ The **Metrics** button (top-right, next to Bird's-eye/Change Lab/Help) opens a
 snapshot of this lab's stats, fetched fresh from the server each time it's opened
 (`productivity_open`/`productivity_data` in `shared/src/protocol.ts`):
 
-- **Agent-to-agent interactions** - in `live` mode, a real cumulative count: every line
+- **Agent-to-Agent interactions** - in `live` mode, a real cumulative count: every line
   of agent-to-agent dialogue ever logged (`agents/runtime.ts`'s decision loop tags each
   side of an exchange with a "💬 " marker in `agent_log`;
   `db.countAgentConversationLines()` counts those rows). In `replay` mode there's no
@@ -200,8 +200,15 @@ snapshot of this lab's stats, fetched fresh from the server each time it's opene
   resets to 0 the instant the loop wraps back to the beginning
   (`getReplayConversationCount()` in `agents/runtime.ts`, driven by
   `ReplayPlayer.tick()`'s `looped` flag).
-- **Human-agent interaction** - a real count of `access_log` rows (see Persistence
-  above).
+- **Human-Agent interaction** - a real count of `human_interaction_log` rows
+  (`db.countHumanInteractionLogEntries()`) - every message (both sides) of a logged-in
+  account's own conversations with a computer terminal or directly with one of the two
+  agents (see Persistence above). Visitors' NPC/terminal chats aren't persisted there,
+  so they don't count.
+- **Number of visitors** - a real count of `access_log` rows (`db.countAccessLogEntries()`)
+  - every *successful* join or login, Visitors and named accounts alike (see
+  Persistence above); despite the name, this also counts named-account logins, not
+  only anonymous Visitors.
 - **Productivity score** and **Efficiency score** - qualitative snapshots that aim to
   capture how the lab_scientist (experimentalist) and theoretical_scientist agents'
   actual results are trending (`server/src/env.ts`'s `PRODUCTIVITY_SCORE_LABEL`,

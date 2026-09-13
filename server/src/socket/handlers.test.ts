@@ -516,9 +516,19 @@ describe("productivity dashboard", () => {
     expect(db.countAccessLogEntries()).toBe(before + 2);
   });
 
-  it("returns agent interaction / access counts plus the hardcoded score labels", async () => {
+  it("returns agent/human interaction and visitor counts plus the hardcoded score labels", async () => {
     db.saveAgentLogEntry({ id: "conv-1", ts: Date.now(), npcId: "lab_scientist", text: "\u{1F4AC} hi there" });
+    db.saveHumanInteractionEntry({
+      id: "hi-1",
+      ts: Date.now(),
+      accountKey: "anna",
+      kind: "terminal",
+      targetId: "lab_terminal",
+      role: "user",
+      text: "hello",
+    });
     const expectedAgentCount = db.countAgentConversationLines();
+    const expectedHumanInteractionCount = db.countHumanInteractionLogEntries();
     const expectedAccessCount = db.countAccessLogEntries();
 
     const client = await connectClient();
@@ -531,7 +541,8 @@ describe("productivity dashboard", () => {
     });
 
     expect(stats.agentInteractionCount).toBe(expectedAgentCount);
-    expect(stats.humanAccessCount).toBe(expectedAccessCount + 1);
+    expect(stats.humanInteractionCount).toBe(expectedHumanInteractionCount);
+    expect(stats.visitorCount).toBe(expectedAccessCount + 1);
     expect(stats.productivityScoreLabel).toMatch(/productive/i);
     expect(stats.efficiencyScoreLabel).toMatch(/budget/i);
     expect(stats.simulationMatchLabel).toMatch(/matching/i);

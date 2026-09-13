@@ -178,6 +178,10 @@ export interface Db {
 
   saveHumanInteractionEntry(entry: HumanInteractionEntry): void;
   loadRecentHumanInteractionLog(accountKey: string, limit: number): HumanInteractionEntry[];
+  /** Every row ever saved to human_interaction_log, across every account - one row per
+   * message (both the human's and the reply) in a terminal or direct agent chat. Backs
+   * the Metrics dashboard's "Human-Agent interaction" count. */
+  countHumanInteractionLogEntries(): number;
 
   saveAccessLogEntry(entry: AccessLogEntry): void;
   countAccessLogEntries(): number;
@@ -272,6 +276,7 @@ export function openDb(dbPath: string = DEFAULT_DB_PATH): Db {
     `SELECT id, ts, account_key as accountKey, kind, target_id as targetId, role, text
      FROM human_interaction_log WHERE account_key = ? ORDER BY ts DESC LIMIT ?`,
   );
+  const selectHumanInteractionCount = raw.prepare("SELECT COUNT(*) as count FROM human_interaction_log");
 
   const insertAccessLog = raw.prepare(
     "INSERT INTO access_log (id, ts, username, account_key) VALUES (@id, @ts, @username, @accountKey)",
@@ -377,6 +382,9 @@ export function openDb(dbPath: string = DEFAULT_DB_PATH): Db {
     loadRecentHumanInteractionLog(accountKey, limit) {
       const rows = selectRecentHumanInteraction.all(accountKey, limit) as HumanInteractionEntry[];
       return rows.reverse();
+    },
+    countHumanInteractionLogEntries() {
+      return (selectHumanInteractionCount.get() as { count: number }).count;
     },
 
     saveAccessLogEntry(entry) {
