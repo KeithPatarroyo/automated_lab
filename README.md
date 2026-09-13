@@ -219,12 +219,6 @@ snapshot of this lab's stats, fetched fresh from the server each time it's opene
   in `server/src/science/`), this would become an actual agreement score between the
   simulation's results and real measurements, instead of a fixed percentage.
 
-`PRODUCTIVITY_SCORE_LABEL`/`SIMULATION_MATCH_LABEL` are overridable per lab (see
-`server/.env.example`), so different labs can show different fixed snapshots - e.g. the
-live deployment currently shows Lab 1 at "3% more productive than last week"/"Matching
-to 85%" and Lab 2 at "5% more productive than last week"/"Matching to 72%".
-`EFFICIENCY_SCORE_LABEL` isn't (yet) - same fixed value for every lab.
-
 Each lab's counts are independent, same as everything else in Persistence - they only
 reflect that lab's own database (and, in replay mode, that lab's own loop).
 
